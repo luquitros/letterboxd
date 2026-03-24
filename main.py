@@ -47,7 +47,7 @@ def main() -> None:
 
     print(f"\n   {len(set(todos_paises))} países distintos encontrados.")
     print("\n  Gerando mapa...")
-    gerar_mapa(todos_paises, filmes_por_pais, OUTPUT_HTML)
+    gerar_mapa(filmes_por_pais, OUTPUT_HTML)
 
 
 if __name__ == "__main__":
