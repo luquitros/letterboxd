@@ -9,14 +9,37 @@ def get_iso3(country_name):
     except:
         return None
 
-def gerar_mapa(df_cache, output_path="mapa_filmes.html"):
-    df_exploded = df_cache.assign(Countries=df_cache['Countries'].str.split('|')).explode('Countries')
-    
-    df_counts = df_exploded['Countries'].value_counts().reset_index()
-    df_counts.columns = ['Country', 'Count']
-    
+def gerar_mapa(dados, output_path="mapa_filmes.html"):
+    if isinstance(dados, dict):
+        df_counts = pd.DataFrame(list(dados.items()), columns=['Country', 'Count'])
+    else:
+        df_counts = dados.copy()
+        if 'Countries' in df_counts.columns:
+            df_counts = df_counts.assign(Countries=df_counts['Countries'].str.split('|')).explode('Countries')
+            df_counts = df_counts['Countries'].value_counts().reset_index()
+            df_counts.columns = ['Country', 'Count']
+
     df_counts['ISO_CODE'] = df_counts['Country'].apply(get_iso3)
     df_counts = df_counts.dropna(subset=['ISO_CODE'])
+
+    fig = px.choropleth(
+        df_counts,
+        locations="ISO_CODE",
+        color="Count",
+        hover_name="Country",
+        color_continuous_scale=["#2c3440", "#00c030", "#00e054"],
+        projection="natural earth",
+        template="plotly_dark"
+    )
+
+    fig.update_layout(
+        paper_bgcolor="#14181c",
+        plot_bgcolor="#14181c",
+        geo=dict(bgcolor="#14181c", showframe=False)
+    )
+
+    fig.write_html(output_path)
+    print(f"✅ Mapa atualizado com sucesso!")
 
     fig = px.choropleth(
         df_counts,
