@@ -7,7 +7,6 @@ from cache import carregar_cache, salvar_cache, cache_miss, miss_sentinel
 from tmdb import buscar_paises
 from mapa import gerar_mapa
 
-
 def main() -> None:
     print(" Carregando watched.csv...")
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
@@ -46,9 +45,11 @@ def main() -> None:
     salvar_cache(cache_df, novos_registros, CACHE_PATH)
 
     print(f"\n   {len(set(todos_paises))} países distintos encontrados.")
-    print("\n  Gerando mapa...")
-    gerar_mapa(filmes_por_pais, OUTPUT_HTML)
 
+    contagem_para_mapa = {pais: len(lista_filmes) for pais, lista_filmes in filmes_por_pais.items()}
+    
+    print("\n   Gerando mapa...")
+    gerar_mapa(contagem_para_mapa, OUTPUT_HTML)
 
 if __name__ == "__main__":
     main()
