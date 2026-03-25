@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letterboxd Stats</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #14181c;
+    color: #99aabb;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    font-size: 14px;
+  }
+
+  a { color: #00e054; }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 28px 40px;
+    border-bottom: 1px solid #2d3d4a;
+  }
+
+  .logo {
+    width: 32px; height: 32px;
+    background: #00e054;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-inner { width: 14px; height: 14px; background: #14181c; border-radius: 50%; }
+
+  header h1 { font-size: 22px; font-weight: 700; color: #e8f0f5; letter-spacing: -0.5px; }
+  header p  { font-size: 11px; color: #99aabb; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid #2d3d4a;
+  }
+
+  .stat-card {
+    padding: 28px 32px;
+    border-right: 1px solid #2d3d4a;
+  }
+  .stat-card:last-child { border-right: none; }
+  .stat-val  { font-size: 42px; font-weight: 700; color: #00e054; letter-spacing: -2px; line-height: 1; }
+  .stat-label { font-size: 11px; color: #99aabb; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .panel {
+    padding: 32px;
+    border-right: 1px solid #2d3d4a;
+    border-bottom: 1px solid #2d3d4a;
+  }
+  .panel.full  { grid-column: 1 / -1; border-right: none; }
+  .panel.right { border-right: none; }
+
+  .panel-title {
+    font-size: 11px;
+    color: #99aabb;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #00e054; flex-shrink: 0; }
+
+  .chart-wrap { position: relative; width: 100%; }
+
+  .decade-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .decade-label { width: 44px; font-size: 11px; color: #99aabb; text-align: right; flex-shrink: 0; }
+  .decade-track { flex: 1; height: 6px; background: #263040; border-radius: 3px; overflow: hidden; }
+  .decade-fill  { height: 100%; border-radius: 3px; background: #00c030; transition: width 0.6s ease; }
+  .decade-fill.peak { background: #00e054; }
+  .decade-count { width: 32px; font-size: 11px; text-align: right; }
+  .decade-count.peak { color: #00e054; }
+
+  .year-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .year-badge {
+    padding: 10px;
+    border: 1px solid #2d3d4a;
+    border-radius: 4px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .year-badge:hover { border-color: #00e054; }
+  .year-val   { font-size: 22px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+  .year-lbl   { font-size: 10px; color: #99aabb; margin-top: 4px; letter-spacing: 0.05em; }
+
+  footer {
+    padding: 20px 32px;
+    border-top: 1px solid #2d3d4a;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #99aabb;
+  }
+
+  @media (max-width: 700px) {
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+    .panels    { grid-template-columns: 1fr; }
+    .panel.full, .panel, .panel.right { grid-column: auto; border-right: none; }
+    header { padding: 20px; }
+    .panel { padding: 20px; }
+    footer { flex-direction: column; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-inner"></div></div>
+  <div>
+    <h1>letterboxd stats</h1>
+    <p>histórico de filmes assistidos · 2019 – 2026</p>
+  </div>
+</header>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-val">1.301</div>
+    <div class="stat-label">filmes assistidos</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">8</div>
+    <div class="stat-label">anos registrando</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">163</div>
+    <div class="stat-label">média por ano</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-val">328</div>
+    <div class="stat-label">recorde · 23 jul 2023</div>
+  </div>
+</div>
+
+<div class="panels">
+
+  <div class="panel full">
+    <div class="panel-title"><div class="dot"></div>atividade mensal</div>
+    <div class="chart-wrap" style="height:130px">
+      <canvas id="chartTimeline"></canvas>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><div class="dot"></div>filmes por ano assistido</div>
+    <div class="year-grid" id="yearGrid"></div>
+  </div>
+
+  <div class="panel right">
+    <div class="panel-title"><div class="dot"></div>décadas de lançamento</div>
+    <div id="decadeRows"></div>
+  </div>
+
+  <div class="panel full">
+    <div class="panel-title"><div class="dot"></div>distribuição por ano (barras)</div>
+    <div class="chart-wrap" style="height:160px">
+      <canvas id="chartYears"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <span>dados exportados do letterboxd · watched.csv</span>
+  <span>conecte ao tmdb_cache.csv para ver países</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const BY_YEAR   = {"2019":232,"2020":30,"2021":13,"2022":137,"2023":693,"2024":142,"2025":48,"2026":6};
+const BY_DECADE = {"1870s":1,"1910s":1,"1920s":3,"1930s":3,"1940s":7,"1950s":20,"1960s":56,"1970s":55,"1980s":73,"1990s":131,"2000s":274,"2010s":486,"2020s":191};
+const MONTHLY   = {"2019-06":104,"2019-07":81,"2019-08":31,"2019-09":7,"2019-10":9,"2020-01":3,"2020-02":6,"2020-03":1,"2020-06":5,"2020-07":9,"2020-09":3,"2020-10":1,"2020-12":2,"2021-01":5,"2021-09":1,"2021-10":6,"2021-12":1,"2022-01":6,"2022-02":37,"2022-03":20,"2022-04":6,"2022-05":1,"2022-06":25,"2022-07":9,"2022-09":1,"2022-10":1,"2022-11":4,"2022-12":27,"2023-01":30,"2023-02":17,"2023-03":64,"2023-04":10,"2023-05":74,"2023-06":68,"2023-07":359,"2023-08":9,"2023-09":18,"2023-10":14,"2023-11":11,"2023-12":19,"2024-01":28,"2024-02":8,"2024-03":5,"2024-04":10,"2024-05":7,"2024-06":7,"2024-07":4,"2024-08":10,"2024-09":17,"2024-10":10,"2024-11":17,"2024-12":19,"2025-01":16,"2025-02":6,"2025-03":2,"2025-04":13,"2025-05":2,"2025-06":3,"2025-09":1,"2025-10":2,"2025-11":3,"2026-01":5,"2026-02":1};
+
+const mLabels = Object.keys(MONTHLY);
+const mValues = Object.values(MONTHLY);
+
+new Chart(document.getElementById('chartTimeline'), {
+  type: 'line',
+  data: {
+    labels: mLabels,
+    datasets: [{
+      data: mValues,
+      borderColor: '#00e054',
+      borderWidth: 1.5,
+      backgroundColor: 'rgba(0,224,84,0.08)',
+      fill: true,
+      pointRadius: 0,
+      tension: 0.3,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {
+      callbacks: { title: t => t[0].label, label: t => t.raw + ' filmes' }
+    }},
+    scales: {
+      x: {
+        ticks: { color: '#99aabb', font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0 },
+        grid: { color: '#1f2937' },
+        border: { color: '#2d3d4a' }
+      },
+      y: {
+        ticks: { color: '#99aabb', font: { size: 10 } },
+        grid: { color: '#1f2937' },
+        border: { color: '#2d3d4a' }
+      }
+    }
+  }
+});
+
+const maxYear = Math.max(...Object.values(BY_YEAR));
+const yearGrid = document.getElementById('yearGrid');
+Object.entries(BY_YEAR).forEach(([yr, cnt]) => {
+  const opacity = 0.15 + (cnt / maxYear) * 0.85;
+  const div = document.createElement('div');
+  div.className = 'year-badge';
+  div.style.background = `rgba(0,224,84,${opacity * 0.12})`;
+  div.style.borderColor = `rgba(0,224,84,${opacity * 0.45})`;
+  div.innerHTML = `
+    <div class="year-val" style="color:rgba(0,224,84,${0.4 + opacity * 0.6})">${cnt}</div>
+    <div class="year-lbl">${yr}</div>`;
+  yearGrid.appendChild(div);
+});
+
+const maxDecade = Math.max(...Object.values(BY_DECADE));
+const decadeRows = document.getElementById('decadeRows');
+Object.entries(BY_DECADE).reverse().forEach(([dec, cnt]) => {
+  const pct = Math.round((cnt / maxDecade) * 100);
+  const isPeak = pct > 35;
+  const row = document.createElement('div');
+  row.className = 'decade-row';
+  row.innerHTML = `
+    <div class="decade-label">${dec}</div>
+    <div class="decade-track">
+      <div class="decade-fill${isPeak ? ' peak' : ''}" style="width:${pct}%"></div>
+    </div>
+    <div class="decade-count${isPeak ? ' peak' : ''}">${cnt}</div>`;
+  decadeRows.appendChild(row);
+});
+
+// ── Bar chart por ano ──────────────────────────────────────────────────────
+new Chart(document.getElementById('chartYears'), {
+  type: 'bar',
+  data: {
+    labels: Object.keys(BY_YEAR),
+    datasets: [{
+      data: Object.values(BY_YEAR),
+      backgroundColor: Object.values(BY_YEAR).map(v => v === maxYear ? '#00e054' : '#00c030'),
+      borderRadius: 3,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: {
+      callbacks: { label: t => t.raw + ' filmes' }
+    }},
+    scales: {
+      x: {
+        ticks: { color: '#99aabb', font: { size: 11 }, autoSkip: false, maxRotation: 0 },
+        grid: { display: false },
+        border: { color: '#2d3d4a' }
+      },
+      y: {
+        ticks: { color: '#99aabb', font: { size: 10 } },
+        grid: { color: '#1f2937' },
+        border: { color: '#2d3d4a' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
