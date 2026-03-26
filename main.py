@@ -6,22 +6,24 @@ from config import TMDB_API_KEY, CSV_PATH, CACHE_PATH, OUTPUT_HTML
 from cache import carregar_cache, salvar_cache, cache_miss, miss_sentinel
 from tmdb import buscar_paises
 from mapa import gerar_mapa
+from stats import gerar_stats
+
 
 def main() -> None:
-    print(" Carregando watched.csv...")
+    print("📂 Carregando watched.csv...")
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
     print(f"   {len(df)} filmes encontrados.\n")
 
     cache_df, cache_dict = carregar_cache(CACHE_PATH)
 
-    print(" Consultando TMDB API...")
+    print("🌐 Consultando TMDB API...")
     novos_registros: list[dict] = []
     todos_paises: list[str] = []
-    filmes_por_pais: dict[str, list[str]] = {}   
+    filmes_por_pais: dict[str, list[str]] = {}
 
     for _, row in tqdm(df.iterrows(), total=len(df)):
         nome = row["Name"]
-        ano = row["Year"].split(".")[0] if row["Year"] else ""  
+        ano  = row["Year"].split(".")[0] if row["Year"] else ""
         chave = (nome, ano)
 
         if chave in cache_dict:
@@ -46,10 +48,12 @@ def main() -> None:
 
     print(f"\n   {len(set(todos_paises))} países distintos encontrados.")
 
-    contagem_para_mapa = {pais: len(lista_filmes) for pais, lista_filmes in filmes_por_pais.items()}
-    
-    print("\n   Gerando mapa...")
-    gerar_mapa(contagem_para_mapa, OUTPUT_HTML)
+    print("\n  Gerando mapa...")
+    gerar_mapa({p: len(fs) for p, fs in filmes_por_pais.items()}, OUTPUT_HTML)
+
+    print("\n Gerando stats.json...")
+    gerar_stats(CSV_PATH, "stats.json")
+
 
 if __name__ == "__main__":
     main()
