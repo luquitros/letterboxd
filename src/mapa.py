@@ -76,7 +76,7 @@ def gerar_mapa(dados, output_path="mapa_filmes.html"):
         color_continuous_scale=["#2c3440", "#00c030", "#00e054"],
         projection="natural earth",
         template="plotly_dark",
-        title=" Filmes por País de Produção",
+        title="Filmes por País de Produção",
         labels={"Count": "Filmes assistidos"},
     )
 
