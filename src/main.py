@@ -13,18 +13,20 @@ from tmdb import buscar_paises
 from mapa import gerar_mapa
 from stats import gerar_stats
 
+RATINGS_PATH = DATA_DIR / "ratings.csv"
+
 
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
-    print(" Carregando watched.csv...")
+    print("Carregando watched.csv...")
     df = pd.read_csv(CSV_PATH, dtype=str).fillna("")
     print(f"   {len(df)} filmes encontrados.\n")
 
     cache_df, cache_dict = carregar_cache(CACHE_PATH)
 
-    print("🌐 Consultando TMDB API...")
+    print("Consultando TMDB API...")
     novos_registros: list[dict] = []
     todos_paises: list[str] = []
     filmes_por_pais: dict[str, list[str]] = {}
@@ -53,16 +55,18 @@ def main() -> None:
                 filmes_por_pais.setdefault(p, []).append(nome)
 
     salvar_cache(cache_df, novos_registros, CACHE_PATH)
+    print(f"\n   {len(set(todos_paises))} paises distintos encontrados.")
 
-    print(f"\n   {len(set(todos_paises))} países distintos encontrados.")
-
-    print("\n  Gerando mapa...")
+    print("\nGerando mapa...")
     gerar_mapa({p: len(fs) for p, fs in filmes_por_pais.items()}, str(OUTPUT_HTML))
 
-    print("\n Gerando stats.json")
-    gerar_stats(CSV_PATH, STATS_JSON)
+    print("\nGerando stats.json...")
+    ratings_path = RATINGS_PATH if RATINGS_PATH.exists() else None
+    if ratings_path:
+        print("   ratings.csv encontrado, incluindo avaliacoes...")
+    gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
 
-    print("\n Tudo gerado em docs/")
+    print("\nTudo gerado em docs/")
 
 
 if __name__ == "__main__":
