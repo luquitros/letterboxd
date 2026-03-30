@@ -5,6 +5,6 @@ __pycache__/
 venv/
 .env
 
-data/watched.csv
-data/tmdb_cache.csv
+data/
+*.csv
 
