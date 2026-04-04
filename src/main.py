@@ -1,4 +1,5 @@
-﻿import json
+﻿import argparse
+import json
 import logging
 import socket
 import subprocess
@@ -23,6 +24,19 @@ REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
 HTML_STATS_TARGETS = (DOCS_DIR / "index.html", DOCS_DIR / "dashboard.html")
 logger = logging.getLogger(__name__)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Gera o dashboard do Letterboxd.")
+    parser.add_argument("--no-open", action="store_true", help="Nao abre o dashboard no navegador ao final.")
+    parser.add_argument("--stats-only", action="store_true", help="Gera apenas o stats.json e atualiza os HTMLs.")
+    parser.add_argument("--map-only", action="store_true", help="Gera apenas o mapa de paises.")
+    args = parser.parse_args()
+
+    if args.stats_only and args.map_only:
+        parser.error("Use apenas um entre --stats-only e --map-only.")
+
+    return args
 
 
 def configure_logging() -> None:
@@ -100,10 +114,12 @@ def enrich_movies_with_countries(
     return novos_registros, filmes_por_pais, paises_distintos
 
 
-def generate_outputs(filmes_por_pais: dict[str, list[str]]) -> None:
+def generate_map(filmes_por_pais: dict[str, list[str]]) -> None:
     logger.info("\nGerando mapa...")
     gerar_mapa({pais: len(filmes) for pais, filmes in filmes_por_pais.items()}, str(OUTPUT_HTML))
 
+
+def generate_stats_output() -> None:
     logger.info("\nGerando stats.json...")
     ratings_path = RATINGS_PATH if RATINGS_PATH.exists() else None
     if ratings_path:
@@ -171,6 +187,7 @@ def open_dashboard() -> None:
 
 
 def main() -> None:
+    args = parse_args()
     configure_logging()
     ensure_output_dirs()
     validate_runtime_config()
@@ -187,11 +204,16 @@ def main() -> None:
     salvar_cache(cache_df, novos_registros, CACHE_PATH)
     logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
 
-    generate_outputs(filmes_por_pais)
-    embed_stats_in_html()
+    if not args.stats_only:
+        generate_map(filmes_por_pais)
+
+    if not args.map_only:
+        generate_stats_output()
+        embed_stats_in_html()
 
     logger.info("\nTudo gerado em docs/")
-    open_dashboard()
+    if not args.no_open and not args.map_only:
+        open_dashboard()
 
 
 if __name__ == "__main__":

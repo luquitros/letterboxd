@@ -28,6 +28,14 @@ Depois rode:
 python src/main.py
 ```
 
+Modos uteis:
+
+```powershell
+python src/main.py --no-open
+python src/main.py --stats-only
+python src/main.py --map-only
+```
+
 O script vai:
 
 - gerar `docs/stats.json`
