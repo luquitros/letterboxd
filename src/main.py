@@ -26,13 +26,13 @@ HTML_STATS_TARGETS = (DOCS_DIR / "index.html", DOCS_DIR / "dashboard.html")
 logger = logging.getLogger(__name__)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Gera o dashboard do Letterboxd.")
     parser.add_argument("--no-open", action="store_true", help="Nao abre o dashboard no navegador ao final.")
     parser.add_argument("--stats-only", action="store_true", help="Gera apenas o stats.json e atualiza os HTMLs.")
     parser.add_argument("--map-only", action="store_true", help="Gera apenas o mapa de paises.")
     parser.add_argument("--refresh-cache", action="store_true", help="Ignora o cache atual e consulta novamente a TMDB.")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.stats_only and args.map_only:
         parser.error("Use apenas um entre --stats-only e --map-only.")

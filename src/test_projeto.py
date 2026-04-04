@@ -15,7 +15,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from main import enrich_movies_with_countries, load_watched_csv
+from main import enrich_movies_with_countries, load_watched_csv, parse_args
 from mapa import get_iso3
 from stats import gerar_stats
 from tmdb import TMDBTemporaryError, _escolher_resultado, _get, buscar_paises
@@ -211,6 +211,30 @@ class TestTmdb:
 
 
 class TestMain:
+    def test_parse_args_no_open(self):
+        args = parse_args(["--no-open"])
+        assert args.no_open is True
+        assert args.stats_only is False
+        assert args.map_only is False
+
+    def test_parse_args_stats_only(self):
+        args = parse_args(["--stats-only"])
+        assert args.stats_only is True
+        assert args.map_only is False
+
+    def test_parse_args_map_only(self):
+        args = parse_args(["--map-only"])
+        assert args.map_only is True
+        assert args.stats_only is False
+
+    def test_parse_args_refresh_cache(self):
+        args = parse_args(["--refresh-cache"])
+        assert args.refresh_cache is True
+
+    def test_parse_args_rejeita_modos_conflitantes(self):
+        with pytest.raises(SystemExit):
+            parse_args(["--stats-only", "--map-only"])
+
     def test_load_watched_csv_valida_colunas(self, tmp_path):
         csv_path = tmp_path / "watched.csv"
         csv_path.write_text("Name\nAkira\n", encoding="utf-8")
