@@ -22,6 +22,14 @@ python -m pip install -r requirements.txt
 
 Coloque seus arquivos exportados do Letterboxd em `data/`, especialmente `watched.csv`.
 
+Estrutura minima esperada:
+
+```text
+data/
+  watched.csv
+  ratings.csv  # opcional
+```
+
 Depois rode:
 
 ```powershell
@@ -57,3 +65,14 @@ ruff check src
 ```powershell
 python -m pytest src/test_projeto.py -v
 ```
+
+## Problemas comuns
+
+- `TMDB_API_KEY nao configurada`
+  Crie um arquivo `.env` na raiz com `TMDB_API_KEY=sua_chave_aqui`.
+
+- `Arquivo nao encontrado: ...watched.csv`
+  Exporte o `watched.csv` do Letterboxd e coloque-o em `data/`.
+
+- `ratings.csv nao encontrado`
+  Nao e erro. O projeto continua, apenas sem estatisticas de avaliacao.

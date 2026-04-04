@@ -74,7 +74,9 @@ def ensure_output_dirs() -> None:
 def validate_runtime_config() -> None:
     if not TMDB_API_KEY:
         raise ValueError(
-            "TMDB_API_KEY nao configurada. Defina a variavel de ambiente ou crie um arquivo .env na raiz do projeto."
+            "TMDB_API_KEY nao configurada.\n"
+            "Crie um arquivo .env na raiz do projeto com:\n"
+            "TMDB_API_KEY=sua_chave_aqui"
         )
 
 
@@ -86,13 +88,25 @@ def normalize_year(value: str) -> str:
 
 def load_watched_csv(csv_path: Path) -> pd.DataFrame:
     if not csv_path.exists():
-        raise FileNotFoundError(f"Arquivo nao encontrado: {csv_path}")
+        raise FileNotFoundError(
+            f"Arquivo nao encontrado: {csv_path}\n"
+            "Exporte o arquivo watched.csv do Letterboxd e coloque-o na pasta data/."
+        )
 
     df = pd.read_csv(csv_path, dtype=str).fillna("")
     missing_columns = REQUIRED_COLUMNS - set(df.columns)
     if missing_columns:
         missing = ", ".join(sorted(missing_columns))
-        raise ValueError(f"CSV invalido. Colunas obrigatorias ausentes: {missing}")
+        raise ValueError(
+            f"CSV invalido. Colunas obrigatorias ausentes: {missing}\n"
+            "Confira se voce selecionou o watched.csv correto do export do Letterboxd."
+        )
+
+    if df.empty:
+        raise ValueError(
+            f"O arquivo {csv_path.name} esta vazio.\n"
+            "Verifique se o export do Letterboxd contem filmes assistidos."
+        )
 
     return df
 
@@ -161,6 +175,8 @@ def generate_stats_output() -> None:
     ratings_path = RATINGS_PATH if RATINGS_PATH.exists() else None
     if ratings_path:
         logger.info("   ratings.csv encontrado, incluindo avaliacoes...")
+    else:
+        logger.info("   ratings.csv nao encontrado, gerando stats sem avaliacoes...")
     gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
 
 
@@ -233,6 +249,17 @@ def log_summary(summary: ExecutionSummary, total_movies: int, distinct_countries
     logger.info("   Paises distintos encontrados: %s", distinct_countries)
 
 
+def log_user_error(exc: Exception) -> None:
+    logger.error("\nErro:")
+    for line in str(exc).splitlines():
+        logger.error("   %s", line)
+
+    logger.error("\nDicas rapidas:")
+    logger.error("   1. Confira o arquivo data/watched.csv")
+    logger.error("   2. Confira o arquivo .env com TMDB_API_KEY")
+    logger.error("   3. Veja exemplos no README.md")
+
+
 def run_pipeline(options: PipelineOptions) -> ExecutionSummary:
     ensure_output_dirs()
     validate_runtime_config()
@@ -268,8 +295,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     options = build_options(args)
     configure_logging()
-    run_pipeline(options)
-    return 0
+    try:
+        run_pipeline(options)
+        return 0
+    except KeyboardInterrupt:
+        logger.error("\nExecucao interrompida pelo usuario.")
+        return 130
+    except (FileNotFoundError, ValueError) as exc:
+        log_user_error(exc)
+        return 1
 
 
 if __name__ == "__main__":
