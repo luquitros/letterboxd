@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: rodar testes
+    name: lint e testes
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +25,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: validar sintaxe
-        run: python -m py_compile src/main.py src/config.py src/tmdb.py src/cache.py src/test_projeto.py
+        run: python -m py_compile src/main.py src/config.py src/tmdb.py src/cache.py src/test_projeto.py src/stats_only.py
+
+      - name: rodar ruff
+        run: ruff check src
 
       - name: rodar testes
         run: pytest src/test_projeto.py -v

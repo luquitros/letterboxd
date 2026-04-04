@@ -44,6 +44,14 @@ O script vai:
 - atualizar `docs/index.html` e `docs/dashboard.html`
 - abrir o dashboard no navegador usando um servidor local simples
 
+## Qualidade
+
+Lint local:
+
+```powershell
+ruff check src
+```
+
 ## Testes
 
 ```powershell

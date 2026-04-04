@@ -1,20 +1,17 @@
 ﻿import argparse
-import json
 import logging
 import socket
 import subprocess
-import sys
 import time
 import webbrowser
+from dataclasses import dataclass
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 import pandas as pd
 from tqdm import tqdm
 
-from cache import carregar_cache, salvar_cache, cache_miss, miss_sentinel
-from config import TMDB_API_KEY, CSV_PATH, CACHE_PATH, OUTPUT_HTML, STATS_JSON, DOCS_DIR, DATA_DIR
+from cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
+from config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, STATS_JSON, TMDB_API_KEY
 from mapa import gerar_mapa
 from stats import gerar_stats
 from tmdb import TMDBTemporaryError, buscar_paises
@@ -24,6 +21,22 @@ REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
 HTML_STATS_TARGETS = (DOCS_DIR / "index.html", DOCS_DIR / "dashboard.html")
 logger = logging.getLogger(__name__)
+
+
+@dataclass(slots=True)
+class PipelineOptions:
+    no_open: bool = False
+    stats_only: bool = False
+    map_only: bool = False
+    refresh_cache: bool = False
+
+
+@dataclass(slots=True)
+class ExecutionSummary:
+    cache_hits: int = 0
+    api_requests: int = 0
+    temporary_failures: int = 0
+    without_country: int = 0
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -38,6 +51,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         parser.error("Use apenas um entre --stats-only e --map-only.")
 
     return args
+
+
+def build_options(args: argparse.Namespace) -> PipelineOptions:
+    return PipelineOptions(
+        no_open=args.no_open,
+        stats_only=args.stats_only,
+        map_only=args.map_only,
+        refresh_cache=args.refresh_cache,
+    )
 
 
 def configure_logging() -> None:
@@ -75,19 +97,23 @@ def load_watched_csv(csv_path: Path) -> pd.DataFrame:
     return df
 
 
+def load_cache_state(refresh_cache: bool) -> tuple[pd.DataFrame, dict[tuple[str, str], str]]:
+    if refresh_cache:
+        logger.info("Refresh de cache ativado: ignorando cache atual da TMDB.")
+        empty_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
+        return empty_df, {}
+
+    return carregar_cache(CACHE_PATH)
+
+
 def enrich_movies_with_countries(
     df: pd.DataFrame,
     cache_dict: dict[tuple[str, str], str],
-) -> tuple[list[dict], dict[str, list[str]], set[str], dict[str, int]]:
+) -> tuple[list[dict], dict[str, list[str]], set[str], ExecutionSummary]:
     novos_registros: list[dict] = []
     paises_distintos: set[str] = set()
     filmes_por_pais: dict[str, list[str]] = {}
-    summary = {
-        "cache_hits": 0,
-        "api_requests": 0,
-        "temporary_failures": 0,
-        "without_country": 0,
-    }
+    summary = ExecutionSummary()
 
     for row in tqdm(df.itertuples(index=False), total=len(df)):
         nome = str(getattr(row, "Name", "")).strip()
@@ -96,13 +122,13 @@ def enrich_movies_with_countries(
 
         if chave in cache_dict:
             paises_str = cache_dict[chave]
-            summary["cache_hits"] += 1
+            summary.cache_hits += 1
         else:
-            summary["api_requests"] += 1
+            summary.api_requests += 1
             try:
                 paises = buscar_paises(nome, ano, TMDB_API_KEY)
             except TMDBTemporaryError as exc:
-                summary["temporary_failures"] += 1
+                summary.temporary_failures += 1
                 logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
                 continue
 
@@ -112,7 +138,7 @@ def enrich_movies_with_countries(
             time.sleep(TMDB_RATE_LIMIT_SECONDS)
 
         if cache_miss(paises_str) or not paises_str:
-            summary["without_country"] += 1
+            summary.without_country += 1
             continue
 
         for pais in paises_str.split("|"):
@@ -182,7 +208,7 @@ def open_dashboard() -> None:
         port = _get_free_port()
         creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         subprocess.Popen(
-            [sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"],
+            ["python", "-m", "http.server", str(port), "--bind", "127.0.0.1"],
             cwd=str(DOCS_DIR),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -197,19 +223,17 @@ def open_dashboard() -> None:
         logger.info("   Abrindo %s no navegador...", dashboard_path.name)
 
 
-def log_summary(summary: dict[str, int], total_movies: int, distinct_countries: int) -> None:
+def log_summary(summary: ExecutionSummary, total_movies: int, distinct_countries: int) -> None:
     logger.info("\nResumo da execucao:")
     logger.info("   Filmes processados: %s", total_movies)
-    logger.info("   Cache hits: %s", summary["cache_hits"])
-    logger.info("   Consultas TMDB: %s", summary["api_requests"])
-    logger.info("   Falhas temporarias TMDB: %s", summary["temporary_failures"])
-    logger.info("   Filmes sem pais: %s", summary["without_country"])
+    logger.info("   Cache hits: %s", summary.cache_hits)
+    logger.info("   Consultas TMDB: %s", summary.api_requests)
+    logger.info("   Falhas temporarias TMDB: %s", summary.temporary_failures)
+    logger.info("   Filmes sem pais: %s", summary.without_country)
     logger.info("   Paises distintos encontrados: %s", distinct_countries)
 
 
-def main() -> None:
-    args = parse_args()
-    configure_logging()
+def run_pipeline(options: PipelineOptions) -> ExecutionSummary:
     ensure_output_dirs()
     validate_runtime_config()
 
@@ -217,12 +241,7 @@ def main() -> None:
     df = load_watched_csv(CSV_PATH)
     logger.info("   %s filmes encontrados.\n", len(df))
 
-    if args.refresh_cache:
-        logger.info("Refresh de cache ativado: ignorando cache atual da TMDB.")
-        cache_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
-        cache_dict: dict[tuple[str, str], str] = {}
-    else:
-        cache_df, cache_dict = carregar_cache(CACHE_PATH)
+    cache_df, cache_dict = load_cache_state(options.refresh_cache)
 
     logger.info("Consultando TMDB API...")
     novos_registros, filmes_por_pais, paises_distintos, summary = enrich_movies_with_countries(df, cache_dict)
@@ -230,18 +249,28 @@ def main() -> None:
     salvar_cache(cache_df, novos_registros, CACHE_PATH)
     logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
 
-    if not args.stats_only:
+    if not options.stats_only:
         generate_map(filmes_por_pais)
 
-    if not args.map_only:
+    if not options.map_only:
         generate_stats_output()
         embed_stats_in_html()
 
     log_summary(summary, len(df), len(paises_distintos))
     logger.info("\nTudo gerado em docs/")
-    if not args.no_open and not args.map_only:
+    if not options.no_open and not options.map_only:
         open_dashboard()
+
+    return summary
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    options = build_options(args)
+    configure_logging()
+    run_pipeline(options)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -253,8 +253,8 @@ class TestMain:
         assert novos_registros == []
         assert filmes_por_pais == {}
         assert paises_distintos == set()
-        assert summary["temporary_failures"] == 1
-        assert summary["api_requests"] == 1
+        assert summary.temporary_failures == 1
+        assert summary.api_requests == 1
         assert cache == {}
         mock_sleep.assert_not_called()
 

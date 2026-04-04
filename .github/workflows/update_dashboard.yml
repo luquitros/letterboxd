@@ -7,7 +7,7 @@ on:
 
 jobs:
   testes:
-    name: rodar testes
+    name: lint e testes
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +22,9 @@ jobs:
 
       - name: instalar dependencias
         run: pip install -r requirements.txt
+
+      - name: rodar ruff
+        run: ruff check src
 
       - name: rodar testes
         run: pytest src/test_projeto.py -v
@@ -58,8 +61,6 @@ jobs:
       - name: gerar stats.json
         if: steps.watched_csv.outputs.exists == 'true'
         run: python src/stats_only.py
-        env:
-          PYTHONPATH: src
 
       - name: commit e push se houve mudanca
         if: steps.watched_csv.outputs.exists == 'true'
