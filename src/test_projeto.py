@@ -14,6 +14,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import site_renderer
 from cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
 from main import enrich_movies_with_countries, load_watched_csv, parse_args
 from mapa import get_iso3
@@ -279,3 +280,33 @@ class TestMapa:
 
     def test_iso3_united_kingdom(self):
         assert get_iso3("United Kingdom") == "GBR"
+
+
+class TestSiteRenderer:
+    def test_render_docs_pages_embute_stats_e_copia_paginas(self, tmp_path, monkeypatch):
+        template_dir = tmp_path / "templates"
+        docs_dir = tmp_path / "docs"
+        stats_path = tmp_path / "stats.json"
+        template_dir.mkdir()
+        docs_dir.mkdir()
+
+        (template_dir / "index.html").write_text(
+            '<script id="embedded-stats" type="application/json">{{EMBEDDED_STATS}}</script>',
+            encoding="utf-8",
+        )
+        (template_dir / "dashboard.html").write_text(
+            '<script id="embedded-stats" type="application/json">{{EMBEDDED_STATS}}</script>',
+            encoding="utf-8",
+        )
+        (template_dir / "wrapped_generator.html").write_text('wrapped static', encoding="utf-8")
+        stats_path.write_text('{"total": 10}', encoding="utf-8")
+
+        monkeypatch.setattr(site_renderer, "TEMPLATE_DIR", template_dir)
+        monkeypatch.setattr(site_renderer, "DOCS_DIR", docs_dir)
+        monkeypatch.setattr(site_renderer, "STATS_JSON", stats_path)
+
+        site_renderer.render_docs_pages()
+
+        assert '{"total": 10}' in (docs_dir / "index.html").read_text(encoding="utf-8")
+        assert '{"total": 10}' in (docs_dir / "dashboard.html").read_text(encoding="utf-8")
+        assert (docs_dir / "wrapped_generator.html").read_text(encoding="utf-8") == 'wrapped static'

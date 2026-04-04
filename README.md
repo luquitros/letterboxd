@@ -49,7 +49,7 @@ O script vai:
 
 - gerar `docs/stats.json`
 - gerar `docs/mapa_cinema.html`
-- atualizar `docs/index.html` e `docs/dashboard.html`
+- renderizar `docs/index.html`, `docs/dashboard.html` e `docs/wrapped_generator.html` a partir de templates limpos
 - abrir o dashboard no navegador usando um servidor local simples
 
 ## Qualidade

@@ -13,13 +13,13 @@ from tqdm import tqdm
 from cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
 from config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, STATS_JSON, TMDB_API_KEY
 from mapa import gerar_mapa
+from site_renderer import render_docs_pages
 from stats import gerar_stats
 from tmdb import TMDBTemporaryError, buscar_paises
 
 RATINGS_PATH = DATA_DIR / "ratings.csv"
 REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
-HTML_STATS_TARGETS = (DOCS_DIR / "index.html", DOCS_DIR / "dashboard.html")
 logger = logging.getLogger(__name__)
 
 
@@ -180,32 +180,6 @@ def generate_stats_output() -> None:
     gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
 
 
-def embed_stats_in_html() -> None:
-    if not STATS_JSON.exists():
-        return
-
-    stats_json = STATS_JSON.read_text(encoding="utf-8")
-    marker_start = '<script id="embedded-stats" type="application/json">'
-    marker_end = '</script>'
-
-    for html_path in HTML_STATS_TARGETS:
-        if not html_path.exists():
-            continue
-
-        html = html_path.read_text(encoding="utf-8")
-        start_index = html.find(marker_start)
-        if start_index == -1:
-            logger.warning("   Nao foi possivel embutir stats em %s: marcador ausente.", html_path.name)
-            continue
-
-        content_start = start_index + len(marker_start)
-        end_index = html.find(marker_end, content_start)
-        if end_index == -1:
-            logger.warning("   Nao foi possivel embutir stats em %s: fechamento ausente.", html_path.name)
-            continue
-
-        updated_html = html[:content_start] + "\n" + stats_json + "\n" + html[end_index:]
-        html_path.write_text(updated_html, encoding="utf-8")
 
 
 def _get_free_port() -> int:
@@ -262,6 +236,7 @@ def log_user_error(exc: Exception) -> None:
 
 def run_pipeline(options: PipelineOptions) -> ExecutionSummary:
     ensure_output_dirs()
+    render_docs_pages()
     validate_runtime_config()
 
     logger.info("Carregando watched.csv...")
@@ -281,7 +256,7 @@ def run_pipeline(options: PipelineOptions) -> ExecutionSummary:
 
     if not options.map_only:
         generate_stats_output()
-        embed_stats_in_html()
+        render_docs_pages()
 
     log_summary(summary, len(df), len(paises_distintos))
     logger.info("\nTudo gerado em docs/")
