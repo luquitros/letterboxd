@@ -44,12 +44,25 @@ jobs:
       - name: instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: verificar watched.csv
+        id: watched_csv
+        shell: bash
+        run: |
+          if [ -f data/watched.csv ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "data/watched.csv nao encontrado; pulando geracao automatica."
+          fi
+
       - name: gerar stats.json
+        if: steps.watched_csv.outputs.exists == 'true'
         run: python src/stats_only.py
         env:
           PYTHONPATH: src
 
       - name: commit e push se houve mudanca
+        if: steps.watched_csv.outputs.exists == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
