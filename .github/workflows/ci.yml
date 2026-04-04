@@ -1,0 +1,31 @@
+﻿name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: rodar testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: configurar python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: validar sintaxe
+        run: python -m py_compile src/main.py src/config.py src/tmdb.py src/cache.py src/test_projeto.py
+
+      - name: rodar testes
+        run: pytest src/test_projeto.py -v
