@@ -34,6 +34,7 @@ Modos uteis:
 python src/main.py --no-open
 python src/main.py --stats-only
 python src/main.py --map-only
+python src/main.py --refresh-cache
 ```
 
 O script vai:

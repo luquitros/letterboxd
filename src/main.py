@@ -31,6 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-open", action="store_true", help="Nao abre o dashboard no navegador ao final.")
     parser.add_argument("--stats-only", action="store_true", help="Gera apenas o stats.json e atualiza os HTMLs.")
     parser.add_argument("--map-only", action="store_true", help="Gera apenas o mapa de paises.")
+    parser.add_argument("--refresh-cache", action="store_true", help="Ignora o cache atual e consulta novamente a TMDB.")
     args = parser.parse_args()
 
     if args.stats_only and args.map_only:
@@ -77,10 +78,16 @@ def load_watched_csv(csv_path: Path) -> pd.DataFrame:
 def enrich_movies_with_countries(
     df: pd.DataFrame,
     cache_dict: dict[tuple[str, str], str],
-) -> tuple[list[dict], dict[str, list[str]], set[str]]:
+) -> tuple[list[dict], dict[str, list[str]], set[str], dict[str, int]]:
     novos_registros: list[dict] = []
     paises_distintos: set[str] = set()
     filmes_por_pais: dict[str, list[str]] = {}
+    summary = {
+        "cache_hits": 0,
+        "api_requests": 0,
+        "temporary_failures": 0,
+        "without_country": 0,
+    }
 
     for row in tqdm(df.itertuples(index=False), total=len(df)):
         nome = str(getattr(row, "Name", "")).strip()
@@ -89,10 +96,13 @@ def enrich_movies_with_countries(
 
         if chave in cache_dict:
             paises_str = cache_dict[chave]
+            summary["cache_hits"] += 1
         else:
+            summary["api_requests"] += 1
             try:
                 paises = buscar_paises(nome, ano, TMDB_API_KEY)
             except TMDBTemporaryError as exc:
+                summary["temporary_failures"] += 1
                 logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
                 continue
 
@@ -102,6 +112,7 @@ def enrich_movies_with_countries(
             time.sleep(TMDB_RATE_LIMIT_SECONDS)
 
         if cache_miss(paises_str) or not paises_str:
+            summary["without_country"] += 1
             continue
 
         for pais in paises_str.split("|"):
@@ -111,7 +122,7 @@ def enrich_movies_with_countries(
             paises_distintos.add(pais)
             filmes_por_pais.setdefault(pais, []).append(nome)
 
-    return novos_registros, filmes_por_pais, paises_distintos
+    return novos_registros, filmes_por_pais, paises_distintos, summary
 
 
 def generate_map(filmes_por_pais: dict[str, list[str]]) -> None:
@@ -186,6 +197,16 @@ def open_dashboard() -> None:
         logger.info("   Abrindo %s no navegador...", dashboard_path.name)
 
 
+def log_summary(summary: dict[str, int], total_movies: int, distinct_countries: int) -> None:
+    logger.info("\nResumo da execucao:")
+    logger.info("   Filmes processados: %s", total_movies)
+    logger.info("   Cache hits: %s", summary["cache_hits"])
+    logger.info("   Consultas TMDB: %s", summary["api_requests"])
+    logger.info("   Falhas temporarias TMDB: %s", summary["temporary_failures"])
+    logger.info("   Filmes sem pais: %s", summary["without_country"])
+    logger.info("   Paises distintos encontrados: %s", distinct_countries)
+
+
 def main() -> None:
     args = parse_args()
     configure_logging()
@@ -196,10 +217,15 @@ def main() -> None:
     df = load_watched_csv(CSV_PATH)
     logger.info("   %s filmes encontrados.\n", len(df))
 
-    cache_df, cache_dict = carregar_cache(CACHE_PATH)
+    if args.refresh_cache:
+        logger.info("Refresh de cache ativado: ignorando cache atual da TMDB.")
+        cache_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
+        cache_dict: dict[tuple[str, str], str] = {}
+    else:
+        cache_df, cache_dict = carregar_cache(CACHE_PATH)
 
     logger.info("Consultando TMDB API...")
-    novos_registros, filmes_por_pais, paises_distintos = enrich_movies_with_countries(df, cache_dict)
+    novos_registros, filmes_por_pais, paises_distintos, summary = enrich_movies_with_countries(df, cache_dict)
 
     salvar_cache(cache_df, novos_registros, CACHE_PATH)
     logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
@@ -211,6 +237,7 @@ def main() -> None:
         generate_stats_output()
         embed_stats_in_html()
 
+    log_summary(summary, len(df), len(paises_distintos))
     logger.info("\nTudo gerado em docs/")
     if not args.no_open and not args.map_only:
         open_dashboard()
