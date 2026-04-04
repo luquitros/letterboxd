@@ -1,165 +1,156 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Letterboxd &middot; luquitros</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg: #081018;
+    --bg-soft: #101b25;
+    --panel: rgba(12, 22, 32, 0.88);
+    --border: rgba(182, 209, 232, 0.12);
+    --text: #e7f2fb;
+    --muted: #8fa4b8;
+    --accent: #00e054;
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
-    background: #0d1117;
-    color: #99aabb;
-    font-family: 'DM Sans', 'Segoe UI', sans-serif;
     min-height: 100vh;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(0, 224, 84, 0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(255, 184, 77, 0.12), transparent 26%),
+      linear-gradient(180deg, #071018 0%, #0b141d 52%, #081018 100%);
     display: flex;
     flex-direction: column;
   }
-
+  .page-shell {
+    position: relative;
+    z-index: 1;
+    width: min(1180px, calc(100vw - 40px));
+    margin: 24px auto;
+    background: linear-gradient(180deg, rgba(10, 19, 28, 0.92), rgba(8, 16, 24, 0.88));
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    backdrop-filter: blur(18px);
+  }
   header {
-    padding: 40px 64px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    border-bottom: 1px solid #161b22;
+    justify-content: space-between;
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
   }
-
-  .logo { width: 24px; height: 24px; background: #00e054; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .logo-inner { width: 10px; height: 10px; background: #0d1117; border-radius: 50%; }
-  .brand { font-family: 'DM Mono', monospace; font-size: 13px; color: #00e054; letter-spacing: 0.15em; text-transform: uppercase; }
-  .brand-sep { color: #21262d; margin: 0 8px; }
-  .brand-user { font-family: 'DM Mono', monospace; font-size: 13px; color: #4a5568; letter-spacing: 0.1em; }
-
-  .hero {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 64px;
-    text-align: center;
-  }
-
-  .hero-eyebrow { font-family: 'DM Mono', monospace; font-size: 11px; color: #4a5568; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 24px; }
-  .hero-title { font-size: 64px; font-weight: 700; color: #ffffff; letter-spacing: -3px; line-height: 1; margin-bottom: 16px; }
-  .hero-title span { color: #00e054; }
-  .hero-sub { font-size: 18px; font-weight: 300; color: #4a5568; margin-bottom: 64px; letter-spacing: -0.3px; }
-
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 100%; max-width: 800px; }
-
-  .card {
-    background: #161b22;
-    padding: 40px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .card:first-child { border-radius: 8px 0 0 8px; }
-  .card:last-child  { border-radius: 0 8px 8px 0; }
-  .card:hover { background: #1c2128; }
-  .card.primary { background: #00e054; }
-  .card.primary:hover { background: #00c548; }
-
-  .card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-  .card.primary .card-icon { background: rgba(0,0,0,0.15); }
-  .card:not(.primary) .card-icon { background: #21262d; }
-
-  .card-title { font-size: 20px; font-weight: 600; color: #ffffff; letter-spacing: -0.5px; }
-  .card.primary .card-title { color: #0d1117; }
-
-  .card-desc { font-size: 13px; color: #4a5568; line-height: 1.6; font-family: 'DM Mono', monospace; }
-  .card.primary .card-desc { color: #005a1f; }
-
-  .card-arrow { font-size: 20px; margin-top: auto; color: #21262d; transition: transform 0.2s; }
-  .card.primary .card-arrow { color: #005a1f; }
+  .brand-row, .header-meta { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 28px; height: 28px; border-radius: 999px; background: var(--accent); display: grid; place-items: center; box-shadow: 0 0 0 8px rgba(0, 224, 84, 0.08); }
+  .logo-inner { width: 11px; height: 11px; border-radius: 999px; background: #081018; }
+  .brand-name, .header-chip, .metric-label, .hero-eyebrow, footer { font-family: 'IBM Plex Mono', monospace; }
+  .brand-name { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+  .brand-sub { font-size: 13px; color: var(--muted); }
+  .header-chip { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.08); color: #c4d7e8; background: rgba(255, 255, 255, 0.03); }
+  .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 24px; padding: 34px 28px 16px; }
+  .hero-eyebrow { display: inline-flex; align-items: center; gap: 10px; color: #b9cfe0; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 18px; }
+  .hero-eyebrow::before { content: ''; width: 34px; height: 1px; background: rgba(255, 255, 255, 0.16); }
+  .hero-title { font-size: clamp(3.4rem, 8vw, 5.8rem); line-height: 0.92; letter-spacing: -0.06em; max-width: 10ch; margin-bottom: 16px; }
+  .hero-title span { color: var(--accent); display: block; text-shadow: 0 0 26px rgba(0, 224, 84, 0.18); }
+  .hero-sub { font-size: 18px; line-height: 1.7; color: var(--muted); max-width: 58ch; }
+  .hero-kicker { margin-top: 24px; display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); color: #c8daea; font-size: 14px; }
+  .hero-side { min-height: 100%; background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)); border: 1px solid var(--border); border-radius: 24px; padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; }
+  .section-tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #b4c7d8; }
+  .side-title { font-size: 24px; line-height: 1.15; letter-spacing: -0.04em; }
+  .side-copy { color: var(--muted); line-height: 1.7; font-size: 15px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 28px 24px; }
+  .card { position: relative; overflow: hidden; background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; min-height: 230px; transition: transform 0.22s ease, border-color 0.22s ease; }
+  .card:hover { transform: translateY(-4px); border-color: rgba(255, 255, 255, 0.18); }
+  .card.primary { background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 32%), linear-gradient(145deg, #00e054 0%, #00c548 100%); color: #071018; }
+  .card.secondary { background: radial-gradient(circle at top right, rgba(255, 184, 77, 0.14), transparent 34%), linear-gradient(180deg, rgba(16, 28, 39, 0.95), rgba(11, 20, 29, 0.95)); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+  .card-icon { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 24px; background: rgba(255, 255, 255, 0.08); }
+  .card.primary .card-icon { background: rgba(7, 16, 24, 0.12); }
+  .card-badge, .card-note { font-family: 'IBM Plex Mono', monospace; }
+  .card-badge { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.76; }
+  .card-title { font-size: 26px; font-weight: 700; letter-spacing: -0.04em; margin-bottom: 10px; }
+  .card-desc { font-size: 15px; line-height: 1.7; opacity: 0.82; max-width: 34ch; }
+  .card-meta { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 24px; }
+  .card-note { font-size: 12px; opacity: 0.72; }
+  .card-arrow { font-size: 22px; line-height: 1; transition: transform 0.2s ease; }
   .card:hover .card-arrow { transform: translateX(4px); }
-
-  .stats-bar { display: flex; justify-content: center; gap: 48px; margin-top: 64px; }
-  .stat-item { text-align: center; }
-  .stat-num { font-size: 28px; font-weight: 700; color: #ffffff; letter-spacing: -1px; line-height: 1; }
-  .stat-lbl { font-size: 11px; color: #4a5568; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
-  .stat-sep { width: 1px; background: #21262d; align-self: stretch; }
-
-  footer { padding: 24px 64px; border-top: 1px solid #161b22; display: flex; justify-content: space-between; font-size: 11px; color: #2d3d4a; font-family: 'DM Mono', monospace; }
-
-  @media (max-width: 600px) {
-    header { padding: 24px; }
-    .hero { padding: 48px 24px; }
-    .hero-title { font-size: 40px; }
-    .hero-sub { font-size: 15px; margin-bottom: 40px; }
-    .cards { grid-template-columns: 1fr; max-width: 100%; }
-    .card:first-child { border-radius: 8px 8px 0 0; }
-    .card:last-child  { border-radius: 0 0 8px 8px; }
-    .stats-bar { gap: 24px; margin-top: 40px; }
-    footer { flex-direction: column; gap: 6px; padding: 20px 24px; }
-  }
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 0 28px 32px; }
+  .metric { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 20px; padding: 18px 20px; }
+  .metric-value { font-size: 32px; font-weight: 800; letter-spacing: -0.06em; color: var(--text); line-height: 1; }
+  .metric-label { margin-top: 8px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); }
+  footer { display: flex; justify-content: space-between; gap: 16px; padding: 20px 28px 24px; border-top: 1px solid var(--border); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #71869a; }
+  @media (max-width: 920px) { .hero, .cards, .metrics { grid-template-columns: 1fr; } .hero-title { max-width: none; } }
+  @media (max-width: 640px) { .page-shell { width: calc(100vw - 20px); margin: 10px auto; border-radius: 24px; } header, .hero, .cards, .metrics, footer { padding-left: 18px; padding-right: 18px; } header, footer { flex-direction: column; align-items: flex-start; } .hero-title { font-size: clamp(2.8rem, 13vw, 4rem); } .hero-sub { font-size: 16px; } }
 </style>
 </head>
 <body>
-
+<div class="page-shell">
 <header>
-  <div class="logo"><div class="logo-inner"></div></div>
-  <span class="brand">letterboxd</span>
-  <span class="brand-sep">/</span>
-  <span class="brand-user">luquitros</span>
+  <div class="brand-row">
+    <div class="logo"><div class="logo-inner"></div></div>
+    <div>
+      <div class="brand-name">letterboxd</div>
+      <div class="brand-sub">painel pessoal de cinema do luquitros</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="header-chip">dados vivos do watched.csv</span>
+    <span class="header-chip">tmdb + stats.json</span>
+  </div>
 </header>
-
-<main class="hero">
-  <p class="hero-eyebrow">hist&oacute;rico pessoal de cinema</p>
-  <h1 class="hero-title"><span id="totalFilmes">1.301</span> filmes</h1>
-  <p class="hero-sub">assistidos desde junho de 2019</p>
-
-  <div class="cards">
+<main>
+  <section class="hero">
+    <div>
+      <p class="hero-eyebrow">cinema em escala pessoal</p>
+      <h1 class="hero-title"><span id="totalFilmes">1.301</span> filmes virando hist&oacute;rico.</h1>
+      <p class="hero-sub">Um recorte vivo do seu Letterboxd: volume, ritmo, mapa de produ&ccedil;&atilde;o e um wrapped pronto para compartilhar sem cara de arquivo exportado.</p>
+      <div class="hero-kicker">do primeiro registro em 2019 at&eacute; o momento mais ativo da sua maratona</div>
+    </div>
+    <aside class="hero-side">
+      <div>
+        <div class="section-tag">modo de navega&ccedil;&atilde;o</div>
+        <h2 class="side-title">Escolha entre leitura anal&iacute;tica ou resumo visual.</h2>
+      </div>
+      <p class="side-copy">O dashboard aprofunda padr&otilde;es do seu hist&oacute;rico. O wrapped transforma os mesmos dados em uma pe&ccedil;a visual mais direta, pronta para virar imagem.</p>
+    </aside>
+  </section>
+  <section class="cards">
     <a class="card primary" href="wrapped_generator.html">
-      <div class="card-icon">&#127916;</div>
-      <div class="card-title">wrapped</div>
-      <div class="card-desc">gere seu resumo anual com os dados do seu letterboxd</div>
-      <div class="card-arrow">&rarr;</div>
+      <div class="card-top"><div class="card-icon">&#127916;</div><div class="card-badge">shareable</div></div>
+      <div class="card-title">Wrapped</div>
+      <div class="card-desc">Gere uma pe&ccedil;a anual com volume, anos favoritos, d&eacute;cadas dominantes e seu recorde pessoal de sess&otilde;es.</div>
+      <div class="card-meta"><span class="card-note">foco em impacto visual</span><span class="card-arrow">&rarr;</span></div>
     </a>
-    <a class="card" href="dashboard.html">
-      <div class="card-icon">&#127916;</div>
-      <div class="card-title">dashboard</div>
-      <div class="card-desc">veja o mapa mundial e estat&iacute;sticas detalhadas</div>
-      <div class="card-arrow">&rarr;</div>
+    <a class="card secondary" href="dashboard.html">
+      <div class="card-top"><div class="card-icon">&#128506;</div><div class="card-badge">deep dive</div></div>
+      <div class="card-title">Dashboard</div>
+      <div class="card-desc">Explore a linha do tempo, o mapa mundial, as distribui&ccedil;&otilde;es de nota e a evolu&ccedil;&atilde;o do seu ritmo ao longo dos anos.</div>
+      <div class="card-meta"><span class="card-note">foco em leitura e contexto</span><span class="card-arrow">&rarr;</span></div>
     </a>
-  </div>
-
-  <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-num" id="sAnos">8</div>
-      <div class="stat-lbl">anos</div>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat-item">
-      <div class="stat-num" id="sMedia">163</div>
-      <div class="stat-lbl">por ano</div>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat-item">
-      <div class="stat-num" id="sRecorde">328</div>
-      <div class="stat-lbl">recorde do dia</div>
-    </div>
-    <div class="stat-sep"></div>
-    <div class="stat-item">
-      <div class="stat-num" id="sAnoAtivo">2023</div>
-      <div class="stat-lbl">ano mais ativo</div>
-    </div>
-  </div>
+  </section>
+  <section class="metrics">
+    <div class="metric"><div class="metric-value" id="sAnos">8</div><div class="metric-label">anos registrados</div></div>
+    <div class="metric"><div class="metric-value" id="sMedia">163</div><div class="metric-label">m&eacute;dia anual</div></div>
+    <div class="metric"><div class="metric-value" id="sRecorde">328</div><div class="metric-label">recorde em um dia</div></div>
+    <div class="metric"><div class="metric-value" id="sAnoAtivo">2023</div><div class="metric-label">ano mais intenso</div></div>
+  </section>
 </main>
-
 <footer>
   <span>luquitros &middot; letterboxd.com</span>
-  <span>dados exportados via watched.csv</span>
+  <span>gerado a partir de watched.csv, ratings.csv e TMDB</span>
 </footer>
-
+</div>
 <script id="embedded-stats" type="application/json">
 {{EMBEDDED_STATS}}
 </script>
-
 <script>
 async function loadStats() {
   try {
@@ -174,19 +165,15 @@ async function loadStats() {
     throw error;
   }
 }
-
-loadStats()
-  .then(s => {
-    if (!s) return;
-    document.getElementById('totalFilmes').textContent = s.total.toLocaleString('pt-BR');
-    document.getElementById('sAnos').textContent = s.active_years;
-    document.getElementById('sMedia').textContent = s.avg_per_year;
-    document.getElementById('sRecorde').textContent = s.top_day.count;
-    const bestYear = Object.entries(s.by_year).sort((a, b) => b[1] - a[1])[0][0];
-    document.getElementById('sAnoAtivo').textContent = bestYear;
-  })
-  .catch(() => {});
+loadStats().then(s => {
+  if (!s) return;
+  document.getElementById('totalFilmes').textContent = s.total.toLocaleString('pt-BR');
+  document.getElementById('sAnos').textContent = s.active_years;
+  document.getElementById('sMedia').textContent = s.avg_per_year;
+  document.getElementById('sRecorde').textContent = s.top_day.count;
+  const bestYear = Object.entries(s.by_year).sort((a, b) => b[1] - a[1])[0][0];
+  document.getElementById('sAnoAtivo').textContent = bestYear;
+}).catch(() => {});
 </script>
-
 </body>
 </html>

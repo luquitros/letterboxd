@@ -218,13 +218,13 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <h1>wrapped generator</h1>
-      <p>Cole o conteudo do seu <code style="color:#00e054">stats.json</code> abaixo para gerar seu resumo.</p>
+      <p>Cole o conte&uacute;do do seu <code style="color:#00e054">stats.json</code> abaixo e transforme seus dados em uma pe&ccedil;a visual pronta para compartilhar.</p>
     </div>
 
     <div>
       <div class="section-label">stats.json</div>
       <textarea id="jsonInput" placeholder='{"total": 1301, "active_years": 8, ...}'></textarea>
-      <div class="error" id="errorMsg">JSON invalido; verifique o conteudo.</div>
+      <div class="error" id="errorMsg">JSON inv&aacute;lido. Verifique o conte&uacute;do antes de gerar o card.</div>
     </div>
 
     <div class="btn-group">
@@ -233,11 +233,11 @@
     </div>
 
     <div>
-      <div class="section-label">como usar</div>
+      <div class="section-label">fluxo r&aacute;pido</div>
       <p class="tip">
         1. Rode <code>python src/main.py</code> no seu projeto<br>
         2. Abra o arquivo <code>stats.json</code> gerado<br>
-        3. Copie todo o conteudo e cole aqui<br>
+        3. Copie todo o conte&uacute;do e cole aqui<br>
         4. Clique em <code>gerar wrapped</code><br>
         5. Baixe a imagem PNG
       </p>
@@ -246,11 +246,11 @@
 
   <!-- Preview -->
   <div class="preview-area">
-    <div class="preview-label">preview</div>
+    <div class="preview-label">preview em tempo real</div>
     <div id="preview-wrapper">
       <div class="empty-state" id="emptyState">
         <div class="big">&#127916;</div>
-        <p>cole seu stats.json para comecar</p>
+        <p>cole seu stats.json para montar o wrapped</p>
       </div>
 
       <!-- Wrapped Card -->
@@ -276,7 +276,7 @@
             <div class="w-stat-sub" id="wBestYearSub"></div>
           </div>
           <div class="w-stat">
-            <div class="w-stat-label">media por ano</div>
+            <div class="w-stat-label">m&eacute;dia por ano</div>
             <div class="w-stat-value" id="wAvg"></div>
             <div class="w-stat-sub">filmes / ano</div>
           </div>
@@ -290,7 +290,7 @@
         <div class="w-years" id="wYears"></div>
 
         <div class="w-decades">
-          <div class="w-decades-title">decadas de lancamento favoritas</div>
+          <div class="w-decades-title">d&eacute;cadas de lan&ccedil;amento que mais apareceram</div>
           <div id="wDecades"></div>
         </div>
 
