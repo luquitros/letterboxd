@@ -3,6 +3,7 @@ Testes automatizados do projeto letterboxd.
 Rode com: pytest src/test_projeto.py -v
 """
 
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -14,12 +15,30 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import site_renderer
-from cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from main import enrich_movies_with_countries, load_watched_csv, parse_args
-from mapa import get_iso3
-from stats import gerar_stats
-from tmdb import TMDBTemporaryError, _escolher_resultado, _get, buscar_paises
+cache_module = importlib.import_module("cache")
+main_module = importlib.import_module("main")
+mapa_module = importlib.import_module("mapa")
+stats_module = importlib.import_module("stats")
+tmdb_module = importlib.import_module("tmdb")
+
+cache_miss = cache_module.cache_miss
+carregar_cache = cache_module.carregar_cache
+miss_sentinel = cache_module.miss_sentinel
+salvar_cache = cache_module.salvar_cache
+
+enrich_movies_with_countries = main_module.enrich_movies_with_countries
+load_watched_csv = main_module.load_watched_csv
+parse_args = main_module.parse_args
+
+get_iso3 = mapa_module.get_iso3
+
+gerar_stats = stats_module.gerar_stats
+
+TMDBTemporaryError = tmdb_module.TMDBTemporaryError
+_escolher_resultado = tmdb_module._escolher_resultado
+_get = tmdb_module._get
+buscar_paises = tmdb_module.buscar_paises
+
 
 
 WATCHED_CSV = """Date,Name,Year,Letterboxd URI
@@ -284,6 +303,7 @@ class TestMapa:
 
 class TestSiteRenderer:
     def test_render_docs_pages_embute_stats_e_copia_paginas(self, tmp_path, monkeypatch):
+        site_renderer = importlib.import_module("site_renderer")
         template_dir = tmp_path / "templates"
         docs_dir = tmp_path / "docs"
         stats_path = tmp_path / "stats.json"

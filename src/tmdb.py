@@ -3,7 +3,6 @@ import time
 
 import requests
 
-
 _MAX_RETRIES = 3
 _RETRY_DELAY = 2.0
 logger = logging.getLogger(__name__)

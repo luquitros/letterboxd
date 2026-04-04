@@ -1,7 +1,8 @@
 import json
-import pandas as pd
 from datetime import date
 from pathlib import Path
+
+import pandas as pd
 
 
 def gerar_stats(csv_path: Path, output_path: Path, ratings_path: Path | None = None) -> None:
