@@ -1,5 +1,7 @@
 ﻿import json
 import logging
+import socket
+import subprocess
 import sys
 import time
 import webbrowser
@@ -30,6 +32,13 @@ def configure_logging() -> None:
 def ensure_output_dirs() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def validate_runtime_config() -> None:
+    if not TMDB_API_KEY:
+        raise ValueError(
+            "TMDB_API_KEY nao configurada. Defina a variavel de ambiente ou crie um arquivo .env na raiz do projeto."
+        )
 
 
 def normalize_year(value: str) -> str:
@@ -130,19 +139,41 @@ def embed_stats_in_html() -> None:
         html_path.write_text(updated_html, encoding="utf-8")
 
 
+def _get_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
 def open_dashboard() -> None:
     dashboard_path = DOCS_DIR / "index.html"
     if not dashboard_path.exists():
         logger.warning("   Nao foi possivel abrir o navegador: %s nao existe.", dashboard_path)
         return
 
-    webbrowser.open(dashboard_path.resolve().as_uri())
-    logger.info("   Abrindo %s no navegador...", dashboard_path.name)
+    try:
+        port = _get_free_port()
+        creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        subprocess.Popen(
+            [sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"],
+            cwd=str(DOCS_DIR),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=creationflags,
+        )
+        url = f"http://127.0.0.1:{port}/{dashboard_path.name}"
+        webbrowser.open(url)
+        logger.info("   Abrindo %s no navegador via %s...", dashboard_path.name, url)
+    except Exception as exc:
+        logger.warning("   Falha ao iniciar servidor local (%s). Abrindo arquivo direto.", exc)
+        webbrowser.open(dashboard_path.resolve().as_uri())
+        logger.info("   Abrindo %s no navegador...", dashboard_path.name)
 
 
 def main() -> None:
     configure_logging()
     ensure_output_dirs()
+    validate_runtime_config()
 
     logger.info("Carregando watched.csv...")
     df = load_watched_csv(CSV_PATH)
