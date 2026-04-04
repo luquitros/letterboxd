@@ -224,11 +224,13 @@ class TestMain:
         df = pd.DataFrame([{"Name": "Akira", "Year": "1988"}])
         cache = {}
 
-        novos_registros, filmes_por_pais, paises_distintos = enrich_movies_with_countries(df, cache)
+        novos_registros, filmes_por_pais, paises_distintos, summary = enrich_movies_with_countries(df, cache)
 
         assert novos_registros == []
         assert filmes_por_pais == {}
         assert paises_distintos == set()
+        assert summary["temporary_failures"] == 1
+        assert summary["api_requests"] == 1
         assert cache == {}
         mock_sleep.assert_not_called()
 
