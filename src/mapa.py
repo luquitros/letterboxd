@@ -29,6 +29,8 @@ _OVERRIDES = {
 
 def get_iso3(country_name: str) -> str | None:
     """Converte nome do país para código ISO-3166-1 alpha-3."""
+    if not country_name or not country_name.strip():
+        return None
     if country_name in _OVERRIDES:
         return _OVERRIDES[country_name]
     try:
@@ -56,7 +58,7 @@ def gerar_mapa(dados, output_path="mapa_filmes.html"):
 
     sem_iso = [p for p in df_counts["Country"].unique() if get_iso3(p) is None]
     if sem_iso:
-        print(f"\n  {len(sem_iso)} países sem código ISO (ignorados no mapa):")
+        print(f"\n⚠️  {len(sem_iso)} países sem código ISO (ignorados no mapa):")
         for p in sorted(sem_iso):
             print(f"   • {p}")
 
@@ -76,7 +78,7 @@ def gerar_mapa(dados, output_path="mapa_filmes.html"):
         color_continuous_scale=["#2c3440", "#00c030", "#00e054"],
         projection="natural earth",
         template="plotly_dark",
-        title="Filmes por País de Produção",
+        title=" Filmes por País de Produção",
         labels={"Count": "Filmes assistidos"},
     )
 
@@ -88,7 +90,7 @@ def gerar_mapa(dados, output_path="mapa_filmes.html"):
     )
 
     fig.write_html(output_path)
-    print(f" Mapa salvo em: {output_path}")
+    print(f"✅ Mapa salvo em: {output_path}")
 
 
 if __name__ == "__main__":

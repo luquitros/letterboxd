@@ -1,38 +1,50 @@
+import logging
 import time
+
 import requests
 
 
 _MAX_RETRIES = 3
-_RETRY_DELAY = 2.0   
+_RETRY_DELAY = 2.0
+logger = logging.getLogger(__name__)
+
+
+class TMDBTemporaryError(Exception):
+    """Erro temporario ao consultar a TMDB."""
 
 
 def _get(url: str, params: dict) -> dict | None:
-    """GET com retry automático em caso de 429 ou erros de rede."""
+    """GET com retry automatico em caso de 429 ou erros de rede."""
+    last_error: requests.exceptions.RequestException | None = None
+
     for attempt in range(_MAX_RETRIES):
         try:
-            r = requests.get(url, params=params, timeout=10)
-            if r.status_code == 429:
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 429:
                 wait = _RETRY_DELAY * (2 ** attempt)
-                print(f"    Rate limit atingido. Aguardando {wait:.0f}s...")
+                logger.warning("    Rate limit atingido. Aguardando %.0fs...", wait)
                 time.sleep(wait)
                 continue
-            r.raise_for_status()
-            return r.json()
-        except requests.exceptions.RequestException as e:
+
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as exc:
+            last_error = exc
             if attempt < _MAX_RETRIES - 1:
                 time.sleep(_RETRY_DELAY)
-            else:
-                raise e
-    return None
+                continue
+            raise TMDBTemporaryError(str(exc)) from exc
+
+    raise TMDBTemporaryError(str(last_error or "Limite de tentativas excedido ao consultar TMDB."))
 
 
 def buscar_paises(titulo: str, ano: str, api_key: str) -> list[str]:
     """
-    Busca países de produção de um filme na TMDB.
+    Busca paises de producao de um filme na TMDB.
 
-    Validação de ano: só aceita o primeiro resultado se o ano de lançamento
-    bater com o esperado (±1 ano de tolerância para lançamentos internacionais).
-    Se não bater, percorre os demais resultados antes de desistir.
+    Validacao de ano: so aceita o primeiro resultado se o ano de lancamento
+    bater com o esperado (+/-1 ano de tolerancia para lancamentos internacionais).
+    Se nao bater, percorre os demais resultados antes de desistir.
     """
     params_busca = {
         "api_key": api_key,
@@ -42,37 +54,32 @@ def buscar_paises(titulo: str, ano: str, api_key: str) -> list[str]:
     if ano:
         params_busca["year"] = ano
 
-    try:
-        data = _get("https://api.themoviedb.org/3/search/movie", params_busca)
-        if not data:
-            return []
-
-        resultados = data.get("results", [])
-        if not resultados:
-            return []
-
-        movie_id = _escolher_resultado(resultados, titulo, ano)
-        if movie_id is None:
-            return []
-
-        detalhes = _get(
-            f"https://api.themoviedb.org/3/movie/{movie_id}",
-            {"api_key": api_key},
-        )
-        if not detalhes:
-            return []
-
-        return [p["name"] for p in detalhes.get("production_countries", [])]
-
-    except Exception as e:
-        print(f"  ❌ Erro em '{titulo}' ({ano}): {e}")
+    data = _get("https://api.themoviedb.org/3/search/movie", params_busca)
+    if not data:
         return []
+
+    resultados = data.get("results", [])
+    if not resultados:
+        return []
+
+    movie_id = _escolher_resultado(resultados, titulo, ano)
+    if movie_id is None:
+        return []
+
+    detalhes = _get(
+        f"https://api.themoviedb.org/3/movie/{movie_id}",
+        {"api_key": api_key},
+    )
+    if not detalhes:
+        return []
+
+    return [pais["name"] for pais in detalhes.get("production_countries", [])]
 
 
 def _escolher_resultado(resultados: list, titulo: str, ano: str) -> int | None:
     """
     Percorre os resultados da busca e retorna o ID do filme cujo
-    release_date bate com o ano esperado (±1).  Se nenhum bater,
+    release_date bate com o ano esperado (+/-1). Se nenhum bater,
     retorna o ID do primeiro resultado como fallback.
     """
     if not ano:
@@ -83,7 +90,6 @@ def _escolher_resultado(resultados: list, titulo: str, ano: str) -> int | None:
     except ValueError:
         return resultados[0]["id"]
 
-    
     for res in resultados:
         release = res.get("release_date", "")
         if not release:
@@ -95,5 +101,4 @@ def _escolher_resultado(resultados: list, titulo: str, ano: str) -> int | None:
         except ValueError:
             continue
 
-    
     return resultados[0]["id"]

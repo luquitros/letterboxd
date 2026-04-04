@@ -1,6 +1,8 @@
+﻿import json
 import logging
 import sys
 import time
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -12,12 +14,12 @@ from cache import carregar_cache, salvar_cache, cache_miss, miss_sentinel
 from config import TMDB_API_KEY, CSV_PATH, CACHE_PATH, OUTPUT_HTML, STATS_JSON, DOCS_DIR, DATA_DIR
 from mapa import gerar_mapa
 from stats import gerar_stats
-from tmdb import buscar_paises
+from tmdb import TMDBTemporaryError, buscar_paises
 
 RATINGS_PATH = DATA_DIR / "ratings.csv"
 REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
-
+HTML_STATS_TARGETS = (DOCS_DIR / "index.html", DOCS_DIR / "dashboard.html")
 logger = logging.getLogger(__name__)
 
 
@@ -58,8 +60,8 @@ def enrich_movies_with_countries(
     filmes_por_pais: dict[str, list[str]] = {}
 
     for row in tqdm(df.itertuples(index=False), total=len(df)):
-        nome = getattr(row, "Name", "")
-        ano = normalize_year(getattr(row, "Year", ""))
+        nome = str(getattr(row, "Name", "")).strip()
+        ano = normalize_year(str(getattr(row, "Year", "")))
         chave = (nome, ano)
 
         if chave in cache_dict:
@@ -67,13 +69,8 @@ def enrich_movies_with_countries(
         else:
             try:
                 paises = buscar_paises(nome, ano, TMDB_API_KEY)
-            except Exception as exc:
-                logger.warning(
-                    "   Falha ao consultar TMDB para '%s' (%s): %s",
-                    nome,
-                    ano or "?",
-                    exc,
-                )
+            except TMDBTemporaryError as exc:
+                logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
                 continue
 
             paises_str = "|".join(paises) if paises else miss_sentinel()
@@ -105,6 +102,44 @@ def generate_outputs(filmes_por_pais: dict[str, list[str]]) -> None:
     gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
 
 
+def embed_stats_in_html() -> None:
+    if not STATS_JSON.exists():
+        return
+
+    stats_json = STATS_JSON.read_text(encoding="utf-8")
+    marker_start = '<script id="embedded-stats" type="application/json">'
+    marker_end = '</script>'
+
+    for html_path in HTML_STATS_TARGETS:
+        if not html_path.exists():
+            continue
+
+        html = html_path.read_text(encoding="utf-8")
+        start_index = html.find(marker_start)
+        if start_index == -1:
+            logger.warning("   Nao foi possivel embutir stats em %s: marcador ausente.", html_path.name)
+            continue
+
+        content_start = start_index + len(marker_start)
+        end_index = html.find(marker_end, content_start)
+        if end_index == -1:
+            logger.warning("   Nao foi possivel embutir stats em %s: fechamento ausente.", html_path.name)
+            continue
+
+        updated_html = html[:content_start] + "\n" + stats_json + "\n" + html[end_index:]
+        html_path.write_text(updated_html, encoding="utf-8")
+
+
+def open_dashboard() -> None:
+    dashboard_path = DOCS_DIR / "index.html"
+    if not dashboard_path.exists():
+        logger.warning("   Nao foi possivel abrir o navegador: %s nao existe.", dashboard_path)
+        return
+
+    webbrowser.open(dashboard_path.resolve().as_uri())
+    logger.info("   Abrindo %s no navegador...", dashboard_path.name)
+
+
 def main() -> None:
     configure_logging()
     ensure_output_dirs()
@@ -122,8 +157,10 @@ def main() -> None:
     logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
 
     generate_outputs(filmes_por_pais)
+    embed_stats_in_html()
 
     logger.info("\nTudo gerado em docs/")
+    open_dashboard()
 
 
 if __name__ == "__main__":

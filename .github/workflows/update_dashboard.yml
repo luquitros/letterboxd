@@ -1,0 +1,58 @@
+name: atualizar dashboard
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # toda segunda-feira às 06:00 UTC
+  workflow_dispatch:       # permite rodar manualmente pelo GitHub
+
+jobs:
+  testes:
+    name: rodar testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: configurar python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: instalar dependências
+        run: pip install -r requirements.txt pytest
+
+      - name: rodar testes
+        run: pytest src/tests/test_projeto.py -v
+
+  atualizar:
+    name: gerar stats.json
+    runs-on: ubuntu-latest
+    needs: testes  # só roda se os testes passarem
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: configurar python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: gerar stats.json
+        run: python src/stats_only.py
+        env:
+          PYTHONPATH: src
+
+      - name: commit e push se houve mudança
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/stats.json
+          git diff --cached --quiet || git commit -m "atualiza stats.json [bot]"
+          git push
