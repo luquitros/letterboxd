@@ -1,3 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "letterboxd-dashboard"
+version = "0.1.0"
+description = "Dashboard pessoal do Letterboxd com stats, mapa e wrapped"
+requires-python = ">=3.12"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+letterboxd = ["templates/*.html"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"

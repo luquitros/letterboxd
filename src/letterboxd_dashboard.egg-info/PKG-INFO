@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: letterboxd-dashboard
+Version: 0.1.0
+Summary: Dashboard pessoal do Letterboxd com stats, mapa e wrapped
+Requires-Python: >=3.12

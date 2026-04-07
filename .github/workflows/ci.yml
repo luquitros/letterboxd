@@ -1,4 +1,4 @@
-﻿name: ci
+name: ci
 
 on:
   push:
@@ -22,13 +22,13 @@ jobs:
           cache: "pip"
 
       - name: instalar dependencias
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -e .
 
       - name: validar sintaxe
-        run: python -m py_compile src/main.py src/config.py src/tmdb.py src/cache.py src/test_projeto.py src/stats_only.py
+        run: python -m py_compile src/main.py src/stats_only.py src/test_projeto.py src/letterboxd/*.py
 
       - name: rodar ruff
-        run: ruff check src
+        run: python -m ruff check src
 
       - name: rodar testes
-        run: pytest src/test_projeto.py -v
+        run: python -m pytest src/test_projeto.py -v

@@ -3,43 +3,19 @@ Testes automatizados do projeto letterboxd.
 Rode com: pytest src/test_projeto.py -v
 """
 
-import importlib
 import json
-import sys
-from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
 import requests
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-cache_module = importlib.import_module("cache")
-main_module = importlib.import_module("main")
-mapa_module = importlib.import_module("mapa")
-stats_module = importlib.import_module("stats")
-tmdb_module = importlib.import_module("tmdb")
-
-cache_miss = cache_module.cache_miss
-carregar_cache = cache_module.carregar_cache
-miss_sentinel = cache_module.miss_sentinel
-salvar_cache = cache_module.salvar_cache
-
-enrich_movies_with_countries = main_module.enrich_movies_with_countries
-load_watched_csv = main_module.load_watched_csv
-parse_args = main_module.parse_args
-
-get_iso3 = mapa_module.get_iso3
-
-gerar_stats = stats_module.gerar_stats
-
-TMDBTemporaryError = tmdb_module.TMDBTemporaryError
-_escolher_resultado = tmdb_module._escolher_resultado
-_get = tmdb_module._get
-buscar_paises = tmdb_module.buscar_paises
-
-
+from letterboxd.cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
+from letterboxd.main import enrich_movies_with_countries, load_watched_csv, parse_args
+from letterboxd.mapa import get_iso3
+from letterboxd.site_renderer import render_docs_pages
+from letterboxd.stats import gerar_stats
+from letterboxd.tmdb import TMDBTemporaryError, _escolher_resultado, _get, buscar_paises
 
 WATCHED_CSV = """Date,Name,Year,Letterboxd URI
 2023-01-10,The Godfather,1972,https://boxd.it/abc
@@ -303,7 +279,6 @@ class TestMapa:
 
 class TestSiteRenderer:
     def test_render_docs_pages_embute_stats_e_copia_paginas(self, tmp_path, monkeypatch):
-        site_renderer = importlib.import_module("site_renderer")
         template_dir = tmp_path / "templates"
         docs_dir = tmp_path / "docs"
         stats_path = tmp_path / "stats.json"
@@ -321,11 +296,11 @@ class TestSiteRenderer:
         (template_dir / "wrapped_generator.html").write_text('wrapped static', encoding="utf-8")
         stats_path.write_text('{"total": 10}', encoding="utf-8")
 
-        monkeypatch.setattr(site_renderer, "TEMPLATE_DIR", template_dir)
-        monkeypatch.setattr(site_renderer, "DOCS_DIR", docs_dir)
-        monkeypatch.setattr(site_renderer, "STATS_JSON", stats_path)
+        monkeypatch.setattr("letterboxd.site_renderer.TEMPLATE_DIR", template_dir)
+        monkeypatch.setattr("letterboxd.site_renderer.DOCS_DIR", docs_dir)
+        monkeypatch.setattr("letterboxd.site_renderer.STATS_JSON", stats_path)
 
-        site_renderer.render_docs_pages()
+        render_docs_pages()
 
         assert '{"total": 10}' in (docs_dir / "index.html").read_text(encoding="utf-8")
         assert '{"total": 10}' in (docs_dir / "dashboard.html").read_text(encoding="utf-8")

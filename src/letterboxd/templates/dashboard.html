@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letterboxd Stats &middot; luquitros</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #081018;
+    --panel: rgba(12, 22, 32, 0.88);
+    --border: rgba(186, 210, 231, 0.12);
+    --text: #e7f2fb;
+    --muted: #8fa4b8;
+    --muted-strong: #bfd2e2;
+    --accent: #00e054;
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: radial-gradient(circle at top left, rgba(0, 224, 84, 0.12), transparent 24%), radial-gradient(circle at 88% 10%, rgba(52, 120, 255, 0.14), transparent 20%), linear-gradient(180deg, #071018 0%, #0a141d 48%, #081018 100%); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+  .page-shell { width: min(1380px, calc(100vw - 28px)); margin: 14px auto; border: 1px solid var(--border); border-radius: 28px; background: linear-gradient(180deg, rgba(9, 17, 26, 0.94), rgba(8, 16, 24, 0.9)); box-shadow: var(--shadow); overflow: hidden; backdrop-filter: blur(18px); }
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 28px; border-bottom: 1px solid var(--border); background: rgba(8, 16, 24, 0.82); backdrop-filter: blur(18px); }
+  .header-left, .header-actions { display: flex; align-items: center; gap: 14px; }
+  .logo-circle { width: 32px; height: 32px; border-radius: 999px; background: var(--accent); display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(0, 224, 84, 0.08); }
+  .logo-inner { width: 12px; height: 12px; border-radius: 999px; background: #081018; }
+  .header-title, .header-chip, .intro-eyebrow, .panel-title, .stat-label, footer { font-family: 'IBM Plex Mono', monospace; }
+  .header-title { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.16em; }
+  .header-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .header-chip { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #c7d8e7; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 999px; }
+  .intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 18px; padding: 26px 28px 20px; border-bottom: 1px solid var(--border); }
+  .intro-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-strong); margin-bottom: 16px; }
+  .intro-eyebrow::before { content: ''; width: 34px; height: 1px; background: rgba(255, 255, 255, 0.16); }
+  .intro-title { font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: -0.06em; line-height: 0.98; margin-bottom: 14px; max-width: 12ch; }
+  .intro-copy { color: var(--muted); line-height: 1.75; max-width: 62ch; }
+  .intro-side { border: 1px solid var(--border); border-radius: 22px; padding: 18px 20px; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+  .intro-side strong { font-size: 22px; letter-spacing: -0.04em; }
+  .intro-side p { color: var(--muted); line-height: 1.7; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 0 28px 24px; }
+  .stat-card { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 22px; padding: 20px 22px; min-height: 122px; }
+  .stat-val { font-size: 46px; font-weight: 800; color: var(--accent); letter-spacing: -0.07em; line-height: 0.95; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.13em; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 28px 28px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 24px; }
+  .panel.full { grid-column: 1 / -1; }
+  .panel-title { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; color: var(--muted-strong); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; }
+  .panel-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 6px rgba(0, 224, 84, 0.1); flex-shrink: 0; }
+  .chart-wrap  { position: relative; width: 100%; }
+  .year-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .year-badge { padding: 14px 10px; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; text-align: center; transition: border-color 0.2s, background 0.2s; background: rgba(255,255,255,0.02); }
+  .year-badge:hover { border-color: rgba(0,224,84,0.35); background: rgba(0,224,84,0.05); }
+  .year-val { font-size: 22px; font-weight: 700; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .year-lbl { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .decade-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .decade-label { width: 48px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .decade-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .decade-fill { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .decade-fill.peak { background: var(--accent); }
+  .decade-count { width: 34px; font-size: 12px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .decade-count.peak { color: var(--accent); }
+  .heatmap-wrap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+  .heatmap-cell { width: 13px; height: 13px; border-radius: 4px; background: rgba(255,255,255,0.05); transition: transform 0.1s; cursor: default; flex-shrink: 0; }
+  .heatmap-cell:hover { transform: scale(1.28); }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+  .heatmap-legend-cells { display: flex; gap: 3px; }
+  .heatmap-legend-cell  { width: 13px; height: 13px; border-radius: 4px; }
+  .rating-overview { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; }
+  .rating-big { font-size: 64px; font-weight: 800; color: var(--accent); letter-spacing: -0.08em; line-height: 1; }
+  .rating-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .rating-bars { display: flex; flex-direction: column; gap: 7px; }
+  .rating-row  { display: flex; align-items: center; gap: 10px; }
+  .rating-lbl  { font-size: 12px; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .rating-track { flex: 1; height: 7px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .rating-fill  { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .rating-fill.peak { background: var(--accent); }
+  .rating-cnt  { font-size: 12px; color: var(--muted); width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  .avg-year-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avg-year-lbl { width: 36px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .avg-year-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .avg-year-fill { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s; }
+  .avg-year-fill.peak { background: var(--accent); }
+  .avg-year-val { width: 32px; font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .avg-year-val.peak { color: var(--accent); }
+  .top5-list { display: flex; flex-direction: column; gap: 10px; }
+  .top5-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; }
+  .top5-stars { font-size: 14px; color: var(--accent); flex-shrink: 0; }
+  .top5-name  { font-size: 14px; color: #d6e4f0; font-weight: 500; letter-spacing: -0.2px; }
+  .top5-year  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .panel-note { font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.7; }
+  .empty-panel { display: grid; place-items: center; min-height: 220px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); }
+  .empty-panel-inner { max-width: 420px; }
+  .empty-panel-kicker { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-strong); margin-bottom: 14px; }
+  .empty-panel-title { font-size: 24px; letter-spacing: -0.04em; margin-bottom: 10px; }
+  .empty-panel-copy { color: var(--muted); line-height: 1.75; }
+  footer { display: flex; justify-content: space-between; gap: 12px; padding: 0 28px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #74879a; }
+  @media (max-width: 1020px) { .intro, .panels, .stat-grid { grid-template-columns: 1fr; } .year-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px) { .page-shell { width: calc(100vw - 16px); margin: 8px auto; border-radius: 24px; } header, .intro, .stat-grid, .panels, footer { padding-left: 16px; padding-right: 16px; } header, footer { flex-direction: column; align-items: flex-start; } .header-actions { flex-wrap: wrap; } .rating-overview { grid-template-columns: 1fr; } .year-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page-shell">
+<header>
+  <div class="header-left">
+    <div class="logo-circle"><div class="logo-inner"></div></div>
+    <div>
+      <div class="header-title">letterboxd dashboard</div>
+      <div class="header-sub" id="headerSub">carregando contexto...</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="header-chip">hist&oacute;rico pessoal</span>
+    <span class="header-chip">luquitros</span>
+  </div>
+</header>
+<section class="intro">
+  <div>
+    <p class="intro-eyebrow">leitura anal&iacute;tica do seu cat&aacute;logo</p>
+    <h1 class="intro-title">Um painel que explica o seu ritmo de cinema.</h1>
+    <p class="intro-copy">Aqui o export do Letterboxd ganha contexto: quando voc&ecirc; mais viu filmes, quais d&eacute;cadas dominam seu repert&oacute;rio, como suas notas se distribuem e por onde passa o mapa de produ&ccedil;&atilde;o dos seus t&iacute;tulos.</p>
+  </div>
+  <aside class="intro-side">
+    <strong>Do volume ao padr&atilde;o.</strong>
+    <p>Os n&uacute;meros principais ficam no topo; os pain&eacute;is abaixo contam a hist&oacute;ria completa sem cara de relat&oacute;rio cru.</p>
+  </aside>
+</section>
+<div class="stat-grid">
+  <div class="stat-card"><div class="stat-val" id="sTotal">&mdash;</div><div class="stat-label">filmes assistidos no total</div></div>
+  <div class="stat-card"><div class="stat-val" id="sYears">&mdash;</div><div class="stat-label">anos com registros</div></div>
+  <div class="stat-card"><div class="stat-val" id="sAvg">&mdash;</div><div class="stat-label">m&eacute;dia de filmes por ano</div></div>
+  <div class="stat-card"><div class="stat-val" id="sRecord">&mdash;</div><div class="stat-label" id="sRecordLabel">recorde em um dia</div></div>
+</div>
+<div class="panels">
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>ritmo mensal de visualiza&ccedil;&atilde;o</div><div class="chart-wrap" style="height:150px"><canvas id="chartTimeline"></canvas></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>heatmap de atividade</div><div id="heatmapContainer"></div><div class="heatmap-legend">menos<div class="heatmap-legend-cells" id="legendCells"></div>mais</div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>anos mais intensos</div><div class="year-grid" id="yearGrid"></div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>d&eacute;cadas mais presentes</div><div id="decadeRows"></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>comparativo anual</div><div class="chart-wrap" style="height:170px"><canvas id="chartYears"></canvas></div></div>
+  <div class="panel" id="panelRatingDist"><div class="panel-title"><div class="panel-dot"></div>distribui&ccedil;&atilde;o de notas</div><div class="rating-overview"><div><div class="rating-big" id="ratingMedia"></div><div class="rating-sub" id="ratingTotal">&mdash; filmes avaliados</div></div><div class="rating-bars" id="ratingBars"></div></div></div>
+  <div class="panel" id="panelRatingYear"><div class="panel-title"><div class="panel-dot"></div>m&eacute;dia das notas por ano</div><div id="avgYearRows"></div></div>
+  <div class="panel full" id="panelTop5"><div class="panel-title"><div class="panel-dot"></div>nota m&aacute;xima: seus cinco destaques</div><div class="top5-list" id="top5List"></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>mapa mundial de produ&ccedil;&atilde;o</div><iframe src="mapa_cinema.html" style="width:100%;height:540px;border:none;border-radius:18px;display:block;background:#081018;" loading="lazy"></iframe><p class="panel-note">Para atualizar o mapa com os dados mais recentes, rode <code style="color:#00e054;font-family:'IBM Plex Mono',monospace">python src/main.py</code>.</p></div>
+</div>
+<footer><span id="footerDate">dados exportados do letterboxd</span><span>luquitros &middot; painel de estat&iacute;sticas</span></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script id="embedded-stats" type="application/json">
+{{EMBEDDED_STATS}}
+</script>
+<script>
+let chartTimeline = null;
+let chartYears    = null;
+
+const GRID  = 'rgba(255,255,255,0.04)';
+const TICK  = '#4a5a6a';
+const GREEN = '#00e054';
+const GDIM  = 'rgba(0,192,48,0.55)';
+const GFILL = 'rgba(0,224,84,0.07)';
+
+// Heatmap helpers
+function heatColor(val, max) {
+  if (!val) return 'rgba(255,255,255,0.05)';
+  const steps = [
+    'rgba(0,160,40,0.25)',
+    'rgba(0,180,48,0.45)',
+    'rgba(0,200,55,0.65)',
+    'rgba(0,220,60,0.82)',
+    '#00e054',
+  ];
+  const idx = Math.min(Math.floor((val / max) * steps.length), steps.length - 1);
+  return steps[idx];
+}
+
+function buildHeatmap(heatmap) {
+  const max = Math.max(...Object.values(heatmap));
+  const allDates = Object.keys(heatmap).sort();
+  const firstDate = new Date(allDates[0]);
+  const lastDate  = new Date(allDates[allDates.length - 1]);
+
+  // start from Monday of the first week
+  const start = new Date(firstDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  const container = document.getElementById('heatmapContainer');
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+
+  const weeksWrap = document.createElement('div');
+  weeksWrap.className = 'heatmap-wrap';
+
+  let current = new Date(start);
+  let week = null;
+  let lastMonth = -1;
+  const monthLabels = [];
+  let weekIndex = 0;
+
+  while (current <= lastDate) {
+    if (!week) {
+      week = document.createElement('div');
+      week.className = 'heatmap-week';
+      weeksWrap.appendChild(week);
+    }
+
+    const dateStr  = current.toISOString().slice(0, 10);
+    const count    = heatmap[dateStr] || 0;
+    const cell     = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.style.background = heatColor(count, max);
+    if (count) cell.title = `${dateStr}: ${count} filme${count > 1 ? 's' : ''}`;
+    week.appendChild(cell);
+
+    const month = current.getMonth();
+    if (month !== lastMonth && current.getDay() === 0) {
+      monthLabels.push({ weekIdx: weekIndex, label: current.toLocaleString('pt-BR', { month: 'short' }) });
+      lastMonth = month;
+    }
+
+    if (current.getDay() === 6) {
+      week = null;
+      weekIndex++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  container.appendChild(weeksWrap);
+
+  // legend
+  const legendCells = document.getElementById('legendCells');
+  legendCells.innerHTML = '';
+  ['rgba(255,255,255,0.05)', 'rgba(0,160,40,0.25)', 'rgba(0,200,55,0.65)', '#00e054'].forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'heatmap-legend-cell';
+    el.style.background = c;
+    legendCells.appendChild(el);
+  });
+}
+
+// Main render
+function renderDashboard(s) {
+  const years     = Object.keys(s.by_year);
+  const firstYear = years[0];
+  const lastYear  = years[years.length - 1];
+
+  document.getElementById('headerSub').textContent    = `hist&oacute;rico pessoal | ${firstYear} a ${lastYear}`;
+  document.getElementById('sTotal').textContent       = s.total.toLocaleString('pt-BR');
+  document.getElementById('sYears').textContent       = s.active_years;
+  document.getElementById('sAvg').textContent         = s.avg_per_year;
+  document.getElementById('sRecord').textContent      = s.top_day.count;
+  document.getElementById('sRecordLabel').textContent = `recorde em ${s.top_day.date}`;
+  document.getElementById('footerDate').textContent   = `atualizado em ${s.gerado_em} | letterboxd`;
+
+  // Timeline
+  if (chartTimeline) chartTimeline.destroy();
+  chartTimeline = new Chart(document.getElementById('chartTimeline'), {
+    type: 'line',
+    data: { labels: Object.keys(s.monthly), datasets: [{ data: Object.values(s.monthly), borderColor: GREEN, borderWidth: 1.5, backgroundColor: GFILL, fill: true, pointRadius: 0, tension: 0.4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1f24', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, titleColor: '#e8f0f5', bodyColor: '#8899aa', callbacks: { label: t => `  ${t.raw} filmes` } } }, scales: { x: { ticks: { color: TICK, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0 }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } }, y: { ticks: { color: TICK, font: { size: 10 } }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } } } }
+  });
+
+  // Heatmap
+  if (s.heatmap) buildHeatmap(s.heatmap);
+
+  // Years
+  const maxYear  = Math.max(...Object.values(s.by_year));
+  const yearGrid = document.getElementById('yearGrid');
+  yearGrid.innerHTML = '';
+  Object.entries(s.by_year).forEach(([yr, cnt]) => {
+    const op = 0.15 + (cnt / maxYear) * 0.85;
+    const d  = document.createElement('div');
+    d.className = 'year-badge';
+    d.style.borderColor = `rgba(0,224,84,${op * 0.35})`;
+    d.style.background  = `rgba(0,224,84,${op * 0.07})`;
+    d.innerHTML = `<div class="year-val" style="color:rgba(0,224,84,${0.35+op*0.65})">${cnt}</div><div class="year-lbl">${yr}</div>`;
+    yearGrid.appendChild(d);
+  });
+
+  // Decades
+  const maxDecade  = Math.max(...Object.values(s.by_decade));
+  const decadeRows = document.getElementById('decadeRows');
+  decadeRows.innerHTML = '';
+  Object.entries(s.by_decade).reverse().forEach(([dec, cnt]) => {
+    const pct = Math.round((cnt / maxDecade) * 100);
+    const pk  = pct > 35;
+    const r   = document.createElement('div');
+    r.className = 'decade-row';
+    r.innerHTML = `<div class="decade-label">${dec}</div><div class="decade-track"><div class="decade-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="decade-count${pk?' peak':''}">${cnt}</div>`;
+    decadeRows.appendChild(r);
+  });
+
+  // Bar chart
+  if (chartYears) chartYears.destroy();
+  chartYears = new Chart(document.getElementById('chartYears'), {
+    type: 'bar',
+    data: { labels: Object.keys(s.by_year), datasets: [{ data: Object.values(s.by_year), backgroundColor: Object.values(s.by_year).map(v => v === maxYear ? GREEN : GDIM), borderRadius: 6, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1f24', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, titleColor: '#e8f0f5', bodyColor: '#8899aa', callbacks: { label: t => `  ${t.raw} filmes` } } }, scales: { x: { ticks: { color: TICK, font: { size: 12 }, autoSkip: false, maxRotation: 0 }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.06)' } }, y: { ticks: { color: TICK, font: { size: 11 } }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } } } }
+  });
+
+  // Ratings
+  if (!s.ratings) {
+    document.getElementById('panelRatingDist').classList.add('full', 'empty-panel');
+    document.getElementById('panelRatingDist').innerHTML = `
+      <div class="empty-panel-inner">
+        <div class="empty-panel-kicker">avaliacoes ausentes</div>
+        <div class="empty-panel-title">As notas ainda nao entraram neste painel.</div>
+        <div class="empty-panel-copy">Adicione <code style="color:#00e054;font-family:'IBM Plex Mono',monospace">data/ratings.csv</code> ao projeto para liberar distribuicao de notas, media anual e destaques com nota maxima.</div>
+      </div>`;
+    document.getElementById('panelRatingYear').style.display = 'none';
+    document.getElementById('panelTop5').style.display       = 'none';
+    return;
+  }
+  const rt = s.ratings;
+  document.getElementById('ratingMedia').textContent = rt.media_geral;
+  document.getElementById('ratingTotal').textContent = `${rt.total_avaliados} filmes avaliados`;
+
+  const maxDist = Math.max(...Object.values(rt.distribuicao));
+  const ratingBars = document.getElementById('ratingBars');
+  ratingBars.innerHTML = '';
+  Object.entries(rt.distribuicao).sort((a,b) => parseFloat(b[0])-parseFloat(a[0])).forEach(([nota, cnt]) => {
+    const pct = Math.round((cnt / maxDist) * 100);
+    const pk  = cnt === maxDist;
+    const row = document.createElement('div');
+    row.className = 'rating-row';
+    row.innerHTML = `<div class="rating-lbl">&#9733;${nota}</div><div class="rating-track"><div class="rating-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="rating-cnt">${cnt}</div>`;
+    ratingBars.appendChild(row);
+  });
+
+  const maxAvg = Math.max(...Object.values(rt.media_por_ano));
+  const avgRows = document.getElementById('avgYearRows');
+  avgRows.innerHTML = '';
+  Object.entries(rt.media_por_ano).forEach(([yr, avg]) => {
+    const pct = Math.round((avg / 5) * 100);
+    const pk  = avg === maxAvg;
+    const row = document.createElement('div');
+    row.className = 'avg-year-row';
+    row.innerHTML = `<div class="avg-year-lbl">${yr}</div><div class="avg-year-track"><div class="avg-year-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="avg-year-val${pk?' peak':''}">${avg}</div>`;
+    avgRows.appendChild(row);
+  });
+
+  const top5List = document.getElementById('top5List');
+  top5List.innerHTML = '';
+  rt.nota_maxima.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'top5-item';
+    item.innerHTML = `<div class="top5-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div><div class="top5-name">${f.name}</div><div class="top5-year">${f.year}</div></div>`;
+    top5List.appendChild(item);
+  });
+}
+
+async function loadStats() {
+  try {
+    const response = await fetch('stats.json');
+    if (!response.ok) throw new Error('stats.json n&atilde;o encontrado');
+    return await response.json();
+  } catch (error) {
+    const embedded = document.getElementById('embedded-stats')?.textContent?.trim();
+    if (embedded && embedded !== '{}') {
+      return JSON.parse(embedded);
+    }
+    throw error;
+  }
+}
+
+loadStats()
+  .then(renderDashboard)
+  .catch(err => {
+    document.getElementById('headerSub').textContent = 'erro ao carregar dados';
+    document.querySelector('.panels').insertAdjacentHTML('afterbegin',
+      `<div class="panel full"><p class="error-msg">N&atilde;o foi poss&iacute;vel carregar <code>stats.json</code>.<br>Rode <code>python src/main.py</code> para gerar o arquivo.<br><br><small style="color:#3a4a5a">${err.message}</small></p></div>`
+    );
+  });
+</script>
+</body>
+</html>

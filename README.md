@@ -1,4 +1,4 @@
-﻿# letterboxd
+# letterboxd
 
 Gera um dashboard pessoal do Letterboxd com mapa de paises de producao e estatisticas em `docs/`.
 
@@ -14,8 +14,10 @@ TMDB_API_KEY=sua_chave_aqui
 
 ## Instalacao
 
+Instale as dependencias e o pacote em modo editavel:
+
 ```powershell
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -e .
 ```
 
 ## Uso
@@ -30,7 +32,13 @@ data/
   ratings.csv  # opcional
 ```
 
-Depois rode:
+Execucao recomendada como pacote:
+
+```powershell
+python -m letterboxd
+```
+
+Compatibilidade antiga:
 
 ```powershell
 python src/main.py
@@ -39,10 +47,10 @@ python src/main.py
 Modos uteis:
 
 ```powershell
-python src/main.py --no-open
-python src/main.py --stats-only
-python src/main.py --map-only
-python src/main.py --refresh-cache
+python -m letterboxd --no-open
+python -m letterboxd --stats-only
+python -m letterboxd --map-only
+python -m letterboxd --refresh-cache
 ```
 
 O script vai:
@@ -52,12 +60,20 @@ O script vai:
 - renderizar `docs/index.html`, `docs/dashboard.html` e `docs/wrapped_generator.html` a partir de templates limpos
 - abrir o dashboard no navegador usando um servidor local simples
 
+## Estrutura Python
+
+A logica principal agora vive no pacote `letterboxd` dentro de `src/letterboxd/`.
+
+- `python -m letterboxd` usa `src/letterboxd/__main__.py`
+- `src/main.py` e `src/stats_only.py` ficaram como wrappers finos para compatibilidade
+- templates HTML vivem em `src/letterboxd/templates/`
+
 ## Qualidade
 
 Lint local:
 
 ```powershell
-ruff check src
+python -m ruff check src
 ```
 
 ## Testes
