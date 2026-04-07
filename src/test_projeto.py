@@ -186,7 +186,7 @@ class TestTmdb:
         ]
         assert _escolher_resultado(resultados, "Akira", "1988") == 2
 
-    @patch("tmdb._get")
+    @patch("letterboxd.tmdb._get")
     def test_buscar_paises_retorna_lista_de_paises(self, mock_get):
         mock_get.side_effect = [
             {"results": [{"id": 10, "release_date": "1999-10-15"}]},
@@ -194,8 +194,8 @@ class TestTmdb:
         ]
         assert buscar_paises("Fight Club", "1999", "fake-key") == ["United States of America"]
 
-    @patch("tmdb.time.sleep")
-    @patch("tmdb.requests.get")
+    @patch("letterboxd.tmdb.time.sleep")
+    @patch("letterboxd.tmdb.requests.get")
     def test__get_lanca_erro_temporario_apos_retries(self, mock_get, mock_sleep):
         mock_get.side_effect = requests.exceptions.Timeout("timeout")
 
@@ -238,8 +238,8 @@ class TestMain:
         with pytest.raises(ValueError):
             load_watched_csv(csv_path)
 
-    @patch("main.time.sleep")
-    @patch("main.buscar_paises", side_effect=TMDBTemporaryError("timeout"))
+    @patch("letterboxd.main.time.sleep")
+    @patch("letterboxd.main.buscar_paises", side_effect=TMDBTemporaryError("timeout"))
     def test_enrich_movies_nao_cacheia_falha_temporaria(self, mock_buscar, mock_sleep):
         df = pd.DataFrame([{"Name": "Akira", "Year": "1988"}])
         cache = {}
