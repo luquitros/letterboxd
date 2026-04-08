@@ -69,8 +69,8 @@ Arquitetura atual:
 
 - `letterboxd.pipeline` cuida da camada de dados: CSVs, cache, TMDB, `stats.json` e mapa
 - `letterboxd.site_renderer` cuida apenas da renderizacao das paginas em `docs/`
-- `letterboxd.build_data` exp?e um comando dedicado para atualizar so os artefatos de dados
-- `letterboxd.build_site` exp?e um comando dedicado para renderizar o site a partir dos artefatos existentes
+- `letterboxd.build_data` expoe um comando dedicado para atualizar so os artefatos de dados
+- `letterboxd.build_site` expoe um comando dedicado para renderizar o site a partir dos artefatos existentes
 - `letterboxd.main` faz a orquestracao completa da CLI, combinando dados + renderizacao + abertura do navegador
 
 - `python -m letterboxd` usa `src/letterboxd/__main__.py`
@@ -82,13 +82,13 @@ Arquitetura atual:
 Lint local:
 
 ```powershell
-python -m ruff check src
+python -m ruff check src tests
 ```
 
 ## Testes
 
 ```powershell
-python -m pytest src/test_projeto.py -v
+python -m pytest tests/test_projeto.py -v
 ```
 
 ## Problemas comuns

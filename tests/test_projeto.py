@@ -1,6 +1,6 @@
 """
 Testes automatizados do projeto letterboxd.
-Rode com: pytest src/test_projeto.py -v
+Rode com: pytest tests/test_projeto.py -v
 """
 
 import importlib
