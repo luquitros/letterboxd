@@ -51,18 +51,27 @@ python -m letterboxd --no-open
 python -m letterboxd --stats-only
 python -m letterboxd --map-only
 python -m letterboxd --refresh-cache
+python -m letterboxd.build_data
+python -m letterboxd.build_site --open
 ```
 
 O script vai:
 
-- gerar `docs/stats.json`
-- gerar `docs/mapa_cinema.html`
-- renderizar `docs/index.html`, `docs/dashboard.html` e `docs/wrapped_generator.html` a partir de templates limpos
+- gerar artefatos de dados em `docs/stats.json` e `docs/mapa_cinema.html`
+- renderizar `docs/index.html`, `docs/dashboard.html` e `docs/wrapped_generator.html` a partir desses artefatos
 - abrir o dashboard no navegador usando um servidor local simples
 
 ## Estrutura Python
 
 A logica principal agora vive no pacote `letterboxd` dentro de `src/letterboxd/`.
+
+Arquitetura atual:
+
+- `letterboxd.pipeline` cuida da camada de dados: CSVs, cache, TMDB, `stats.json` e mapa
+- `letterboxd.site_renderer` cuida apenas da renderizacao das paginas em `docs/`
+- `letterboxd.build_data` exp?e um comando dedicado para atualizar so os artefatos de dados
+- `letterboxd.build_site` exp?e um comando dedicado para renderizar o site a partir dos artefatos existentes
+- `letterboxd.main` faz a orquestracao completa da CLI, combinando dados + renderizacao + abertura do navegador
 
 - `python -m letterboxd` usa `src/letterboxd/__main__.py`
 - `src/main.py` e `src/stats_only.py` ficaram como wrappers finos para compatibilidade

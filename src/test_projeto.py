@@ -3,6 +3,7 @@ Testes automatizados do projeto letterboxd.
 Rode com: pytest src/test_projeto.py -v
 """
 
+import importlib
 import json
 from unittest.mock import patch
 
@@ -10,9 +11,12 @@ import pandas as pd
 import pytest
 import requests
 
+from letterboxd.build_data import main as build_data_main
+from letterboxd.build_site import main as build_site_main
 from letterboxd.cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from letterboxd.main import enrich_movies_with_countries, load_watched_csv, parse_args
+from letterboxd.main import enrich_movies_with_countries, load_watched_csv, parse_args, run_pipeline
 from letterboxd.mapa import get_iso3
+from letterboxd.pipeline import DataArtifacts, ExecutionSummary, PipelineOptions, generate_data_artifacts
 from letterboxd.site_renderer import render_docs_pages
 from letterboxd.stats import gerar_stats
 from letterboxd.tmdb import TMDBTemporaryError, _escolher_resultado, _get, buscar_paises
@@ -305,3 +309,85 @@ class TestSiteRenderer:
         assert '{"total": 10}' in (docs_dir / "index.html").read_text(encoding="utf-8")
         assert '{"total": 10}' in (docs_dir / "dashboard.html").read_text(encoding="utf-8")
         assert (docs_dir / "wrapped_generator.html").read_text(encoding="utf-8") == 'wrapped static'
+
+
+class TestArchitecture:
+    def test_generate_data_artifacts_separa_dados_da_renderizacao(self, monkeypatch):
+        df = pd.DataFrame([{"Name": "Akira", "Year": "1988"}])
+        cache_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
+        summary = ExecutionSummary(cache_hits=1)
+        calls: list[str] = []
+
+        monkeypatch.setattr("letterboxd.pipeline.validate_runtime_config", lambda: calls.append("validate"))
+        monkeypatch.setattr("letterboxd.pipeline.ensure_output_dirs", lambda: calls.append("dirs"))
+        monkeypatch.setattr("letterboxd.pipeline.load_watched_csv", lambda _path: df)
+        monkeypatch.setattr("letterboxd.pipeline.load_cache_state", lambda _refresh: (cache_df, {}))
+        monkeypatch.setattr(
+            "letterboxd.pipeline.enrich_movies_with_countries",
+            lambda *_args, **_kwargs: ([], {"Japan": ["Akira"]}, {"Japan"}, summary),
+        )
+        monkeypatch.setattr("letterboxd.pipeline.salvar_cache", lambda *_args, **_kwargs: calls.append("save_cache"))
+        monkeypatch.setattr("letterboxd.pipeline.generate_map_artifact", lambda *_args, **_kwargs: calls.append("map"))
+        monkeypatch.setattr("letterboxd.pipeline.generate_stats_artifact", lambda *_args, **_kwargs: calls.append("stats"))
+
+        logger = type("LoggerStub", (), {"info": lambda *args, **kwargs: None})()
+
+        artifacts = generate_data_artifacts(PipelineOptions(), logger=logger, sleep_fn=lambda _seconds: None)
+
+        assert artifacts == DataArtifacts(
+            summary=summary,
+            total_movies=1,
+            distinct_countries=1,
+            stats_generated=True,
+            map_generated=True,
+        )
+        assert calls == ["dirs", "validate", "save_cache", "map", "stats"]
+
+    def test_run_pipeline_renderiza_site_so_quando_stats_existe(self, monkeypatch):
+        calls: list[str] = []
+        artifacts = DataArtifacts(
+            summary=ExecutionSummary(),
+            total_movies=1,
+            distinct_countries=1,
+            stats_generated=False,
+            map_generated=True,
+        )
+        main_module = importlib.import_module("letterboxd.main")
+
+        monkeypatch.setattr(main_module.pipeline, "generate_data_artifacts", lambda *_args, **_kwargs: artifacts)
+        monkeypatch.setattr(main_module, "render_site", lambda: calls.append("render"))
+        monkeypatch.setattr(main_module, "open_dashboard", lambda: calls.append("open"))
+        monkeypatch.setattr(main_module, "log_summary", lambda *_args, **_kwargs: calls.append("summary"))
+
+        run_pipeline(PipelineOptions(map_only=True))
+
+        assert calls == ["summary"]
+
+
+class TestCliModules:
+    def test_build_data_main_usa_pipeline_de_dados(self, monkeypatch):
+        calls: list[str] = []
+        artifacts = DataArtifacts(
+            summary=ExecutionSummary(),
+            total_movies=1,
+            distinct_countries=1,
+            stats_generated=True,
+            map_generated=True,
+        )
+
+        monkeypatch.setattr("letterboxd.build_data.configure_logging", lambda: calls.append("logging"))
+        monkeypatch.setattr("letterboxd.build_data.generate_data_artifacts", lambda *_args, **_kwargs: artifacts)
+        monkeypatch.setattr("letterboxd.build_data.log_summary", lambda *_args, **_kwargs: calls.append("summary"))
+
+        assert build_data_main([]) == 0
+        assert calls == ["logging", "summary"]
+
+    def test_build_site_main_renderiza_e_abre_quando_pedido(self, monkeypatch):
+        calls: list[str] = []
+
+        monkeypatch.setattr("letterboxd.build_site.configure_logging", lambda: calls.append("logging"))
+        monkeypatch.setattr("letterboxd.build_site.render_site", lambda: calls.append("render"))
+        monkeypatch.setattr("letterboxd.build_site.open_dashboard", lambda: calls.append("open"))
+
+        assert build_site_main(["--open"]) == 0
+        assert calls == ["logging", "render", "open"]

@@ -4,39 +4,14 @@ import socket
 import subprocess
 import time
 import webbrowser
-from dataclasses import dataclass
-from pathlib import Path
 
-import pandas as pd
-from tqdm import tqdm
-
-from .cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from .config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, STATS_JSON, TMDB_API_KEY
-from .mapa import gerar_mapa
+from . import pipeline
+from .pipeline import ExecutionSummary, PipelineOptions
 from .site_renderer import render_docs_pages
-from .stats import gerar_stats
-from .tmdb import TMDBTemporaryError, buscar_paises
+from .tmdb import buscar_paises
 
-RATINGS_PATH = DATA_DIR / "ratings.csv"
-REQUIRED_COLUMNS = {"Name", "Year"}
-TMDB_RATE_LIMIT_SECONDS = 0.25
 logger = logging.getLogger(__name__)
-
-
-@dataclass(slots=True)
-class PipelineOptions:
-    no_open: bool = False
-    stats_only: bool = False
-    map_only: bool = False
-    refresh_cache: bool = False
-
-
-@dataclass(slots=True)
-class ExecutionSummary:
-    cache_hits: int = 0
-    api_requests: int = 0
-    temporary_failures: int = 0
-    without_country: int = 0
+load_watched_csv = pipeline.load_watched_csv
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -66,120 +41,14 @@ def configure_logging() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
-def ensure_output_dirs() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def validate_runtime_config() -> None:
-    if not TMDB_API_KEY:
-        raise ValueError(
-            "TMDB_API_KEY nao configurada.\n"
-            "Crie um arquivo .env na raiz do projeto com:\n"
-            "TMDB_API_KEY=sua_chave_aqui"
-        )
-
-
-def normalize_year(value: str) -> str:
-    if not value:
-        return ""
-    return value.split(".", 1)[0].strip()
-
-
-def load_watched_csv(csv_path: Path) -> pd.DataFrame:
-    if not csv_path.exists():
-        raise FileNotFoundError(
-            f"Arquivo nao encontrado: {csv_path}\n"
-            "Exporte o arquivo watched.csv do Letterboxd e coloque-o na pasta data/."
-        )
-
-    df = pd.read_csv(csv_path, dtype=str).fillna("")
-    missing_columns = REQUIRED_COLUMNS - set(df.columns)
-    if missing_columns:
-        missing = ", ".join(sorted(missing_columns))
-        raise ValueError(
-            f"CSV invalido. Colunas obrigatorias ausentes: {missing}\n"
-            "Confira se voce selecionou o watched.csv correto do export do Letterboxd."
-        )
-
-    if df.empty:
-        raise ValueError(
-            f"O arquivo {csv_path.name} esta vazio.\n"
-            "Verifique se o export do Letterboxd contem filmes assistidos."
-        )
-
-    return df
-
-
-def load_cache_state(refresh_cache: bool) -> tuple[pd.DataFrame, dict[tuple[str, str], str]]:
-    if refresh_cache:
-        logger.info("Refresh de cache ativado: ignorando cache atual da TMDB.")
-        empty_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
-        return empty_df, {}
-
-    return carregar_cache(CACHE_PATH)
-
-
-def enrich_movies_with_countries(
-    df: pd.DataFrame,
-    cache_dict: dict[tuple[str, str], str],
-) -> tuple[list[dict], dict[str, list[str]], set[str], ExecutionSummary]:
-    novos_registros: list[dict] = []
-    paises_distintos: set[str] = set()
-    filmes_por_pais: dict[str, list[str]] = {}
-    summary = ExecutionSummary()
-
-    for row in tqdm(df.itertuples(index=False), total=len(df)):
-        nome = str(getattr(row, "Name", "")).strip()
-        ano = normalize_year(str(getattr(row, "Year", "")))
-        chave = (nome, ano)
-
-        if chave in cache_dict:
-            paises_str = cache_dict[chave]
-            summary.cache_hits += 1
-        else:
-            summary.api_requests += 1
-            try:
-                paises = buscar_paises(nome, ano, TMDB_API_KEY)
-            except TMDBTemporaryError as exc:
-                summary.temporary_failures += 1
-                logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
-                continue
-
-            paises_str = "|".join(paises) if paises else miss_sentinel()
-            cache_dict[chave] = paises_str
-            novos_registros.append({"Name": nome, "Year": ano, "Countries": paises_str})
-            time.sleep(TMDB_RATE_LIMIT_SECONDS)
-
-        if cache_miss(paises_str) or not paises_str:
-            summary.without_country += 1
-            continue
-
-        for pais in paises_str.split("|"):
-            pais = pais.strip()
-            if not pais:
-                continue
-            paises_distintos.add(pais)
-            filmes_por_pais.setdefault(pais, []).append(nome)
-
-    return novos_registros, filmes_por_pais, paises_distintos, summary
-
-
-def generate_map(filmes_por_pais: dict[str, list[str]]) -> None:
-    logger.info("\nGerando mapa...")
-    gerar_mapa({pais: len(filmes) for pais, filmes in filmes_por_pais.items()}, str(OUTPUT_HTML))
-
-
-def generate_stats_output() -> None:
-    logger.info("\nGerando stats.json...")
-    ratings_path = RATINGS_PATH if RATINGS_PATH.exists() else None
-    if ratings_path:
-        logger.info("   ratings.csv encontrado, incluindo avaliacoes...")
-    else:
-        logger.info("   ratings.csv nao encontrado, gerando stats sem avaliacoes...")
-    gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
-
-
+def enrich_movies_with_countries(df, cache_dict):
+    return pipeline.enrich_movies_with_countries(
+        df,
+        cache_dict,
+        logger=logger,
+        sleep_fn=time.sleep,
+        buscar_paises_fn=buscar_paises,
+    )
 
 
 def _get_free_port() -> int:
@@ -189,6 +58,8 @@ def _get_free_port() -> int:
 
 
 def open_dashboard() -> None:
+    from .config import DOCS_DIR
+
     dashboard_path = DOCS_DIR / "index.html"
     if not dashboard_path.exists():
         logger.warning("   Nao foi possivel abrir o navegador: %s nao existe.", dashboard_path)
@@ -213,6 +84,11 @@ def open_dashboard() -> None:
         logger.info("   Abrindo %s no navegador...", dashboard_path.name)
 
 
+def render_site() -> None:
+    logger.info("\nRenderizando paginas do site...")
+    render_docs_pages()
+
+
 def log_summary(summary: ExecutionSummary, total_movies: int, distinct_countries: int) -> None:
     logger.info("\nResumo da execucao:")
     logger.info("   Filmes processados: %s", total_movies)
@@ -235,35 +111,17 @@ def log_user_error(exc: Exception) -> None:
 
 
 def run_pipeline(options: PipelineOptions) -> ExecutionSummary:
-    ensure_output_dirs()
-    render_docs_pages()
-    validate_runtime_config()
+    artifacts = pipeline.generate_data_artifacts(options, logger, sleep_fn=time.sleep)
 
-    logger.info("Carregando watched.csv...")
-    df = load_watched_csv(CSV_PATH)
-    logger.info("   %s filmes encontrados.\n", len(df))
+    if artifacts.stats_generated:
+        render_site()
 
-    cache_df, cache_dict = load_cache_state(options.refresh_cache)
-
-    logger.info("Consultando TMDB API...")
-    novos_registros, filmes_por_pais, paises_distintos, summary = enrich_movies_with_countries(df, cache_dict)
-
-    salvar_cache(cache_df, novos_registros, CACHE_PATH)
-    logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
-
-    if not options.stats_only:
-        generate_map(filmes_por_pais)
-
-    if not options.map_only:
-        generate_stats_output()
-        render_docs_pages()
-
-    log_summary(summary, len(df), len(paises_distintos))
+    log_summary(artifacts.summary, artifacts.total_movies, artifacts.distinct_countries)
     logger.info("\nTudo gerado em docs/")
     if not options.no_open and not options.map_only:
         open_dashboard()
 
-    return summary
+    return artifacts.summary
 
 
 def main(argv: list[str] | None = None) -> int:
