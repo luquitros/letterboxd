@@ -12,6 +12,13 @@ Gera um dashboard pessoal do Letterboxd com mapa de paises de producao e estatis
 TMDB_API_KEY=sua_chave_aqui
 ```
 
+Opcionalmente, voce tambem pode sobrescrever diretorios padrao:
+
+```env
+LETTERBOXD_DATA_DIR=data
+LETTERBOXD_DOCS_DIR=docs
+```
+
 ## Instalacao
 
 Instale as dependencias e o pacote em modo editavel:
@@ -85,10 +92,37 @@ Lint local:
 python -m ruff check src tests
 ```
 
-## Testes
+Cobertura de testes:
 
 ```powershell
-python -m pytest tests/test_projeto.py -v
+python -m pytest -v
+```
+
+Para ver cobertura explicitamente:
+
+```powershell
+python -m pytest -v --cov=letterboxd --cov-report=term-missing
+```
+
+O projeto agora usa cobertura via `pytest-cov` no CI e ela tambem fica disponivel localmente depois de atualizar as dependencias.
+
+## Testes
+
+A suite foi separada por dominio em `tests/`:
+
+- `tests/test_cache.py`
+- `tests/test_cli.py`
+- `tests/test_config.py`
+- `tests/test_mapa.py`
+- `tests/test_pipeline.py`
+- `tests/test_site_renderer.py`
+- `tests/test_stats.py`
+- `tests/test_tmdb.py`
+
+Para rodar tudo:
+
+```powershell
+python -m pytest -v
 ```
 
 ## Problemas comuns

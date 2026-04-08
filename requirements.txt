@@ -1,4 +1,4 @@
-﻿certifi==2026.2.25
+certifi==2026.2.25
 charset-normalizer==3.4.6
 colorama==0.4.6
 et_xmlfile==2.0.0
@@ -12,6 +12,7 @@ pandas==3.0.1
 plotly==6.6.0
 pycountry==26.2.16
 pytest==8.4.2
+pytest-cov==7.0.0
 python-dateutil==2.9.0.post0
 requests==2.32.5
 ruff==0.13.0

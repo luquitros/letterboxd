@@ -1,4 +1,4 @@
-name: ci
+﻿name: ci
 
 on:
   push:
@@ -25,10 +25,10 @@ jobs:
         run: pip install -r requirements.txt -e .
 
       - name: validar sintaxe
-        run: python -m py_compile src/main.py src/stats_only.py tests/test_projeto.py src/letterboxd/*.py
+        run: python -m py_compile src/main.py src/stats_only.py src/build_data.py src/build_site.py tests/*.py src/letterboxd/*.py
 
       - name: rodar ruff
         run: python -m ruff check src tests
 
       - name: rodar testes
-        run: python -m pytest tests/test_projeto.py -v
+        run: python -m pytest -v --cov=letterboxd --cov-report=term-missing

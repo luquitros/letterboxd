@@ -4,12 +4,11 @@ import pandas as pd
 from tqdm import tqdm
 
 from .cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from .config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, STATS_JSON, TMDB_API_KEY
+from .config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, RATINGS_PATH, STATS_JSON, TMDB_API_KEY
 from .mapa import gerar_mapa
 from .stats import gerar_stats
 from .tmdb import TMDBTemporaryError, buscar_paises
 
-RATINGS_PATH = DATA_DIR / "ratings.csv"
 REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
 

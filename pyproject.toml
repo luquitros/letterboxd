@@ -22,8 +22,18 @@ line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = ["E", "F", "I", "UP"]
 ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-config --strict-markers"
+
+[tool.coverage.run]
+source = ["letterboxd"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

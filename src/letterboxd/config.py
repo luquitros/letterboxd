@@ -1,13 +1,26 @@
 ﻿import os
+from dataclasses import dataclass
 from pathlib import Path
 
+
+@dataclass(frozen=True, slots=True)
+class AppConfig:
+    base_dir: Path
+    data_dir: Path
+    docs_dir: Path
+    tmdb_api_key: str
+    csv_path: Path
+    ratings_path: Path
+    cache_path: Path
+    output_html: Path
+    stats_json: Path
+
+
 BASE_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = BASE_DIR / "data"
-DOCS_DIR = BASE_DIR / "docs"
 
 
-def _load_dotenv() -> None:
-    env_path = BASE_DIR / ".env"
+def _load_dotenv(base_dir: Path) -> None:
+    env_path = base_dir / ".env"
     if not env_path.exists():
         return
 
@@ -22,10 +35,43 @@ def _load_dotenv() -> None:
         os.environ.setdefault(key, value)
 
 
-_load_dotenv()
+def _resolve_dir(env_name: str, default: Path) -> Path:
+    value = os.getenv(env_name, "").strip()
+    if not value:
+        return default
 
-TMDB_API_KEY = os.getenv("TMDB_API_KEY", "").strip()
-CSV_PATH = DATA_DIR / "watched.csv"
-CACHE_PATH = DATA_DIR / "tmdb_cache.csv"
-OUTPUT_HTML = DOCS_DIR / "mapa_cinema.html"
-STATS_JSON = DOCS_DIR / "stats.json"
+    candidate = Path(value).expanduser()
+    if not candidate.is_absolute():
+        candidate = BASE_DIR / candidate
+    return candidate.resolve()
+
+
+def load_config() -> AppConfig:
+    _load_dotenv(BASE_DIR)
+
+    data_dir = _resolve_dir("LETTERBOXD_DATA_DIR", BASE_DIR / "data")
+    docs_dir = _resolve_dir("LETTERBOXD_DOCS_DIR", BASE_DIR / "docs")
+    tmdb_api_key = os.getenv("TMDB_API_KEY", "").strip()
+
+    return AppConfig(
+        base_dir=BASE_DIR,
+        data_dir=data_dir,
+        docs_dir=docs_dir,
+        tmdb_api_key=tmdb_api_key,
+        csv_path=data_dir / "watched.csv",
+        ratings_path=data_dir / "ratings.csv",
+        cache_path=data_dir / "tmdb_cache.csv",
+        output_html=docs_dir / "mapa_cinema.html",
+        stats_json=docs_dir / "stats.json",
+    )
+
+
+CONFIG = load_config()
+DATA_DIR = CONFIG.data_dir
+DOCS_DIR = CONFIG.docs_dir
+TMDB_API_KEY = CONFIG.tmdb_api_key
+CSV_PATH = CONFIG.csv_path
+CACHE_PATH = CONFIG.cache_path
+OUTPUT_HTML = CONFIG.output_html
+STATS_JSON = CONFIG.stats_json
+RATINGS_PATH = CONFIG.ratings_path

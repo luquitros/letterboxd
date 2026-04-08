@@ -1,4 +1,4 @@
-name: atualizar dashboard
+﻿name: atualizar dashboard
 
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
         run: python -m ruff check src tests
 
       - name: rodar testes
-        run: python -m pytest tests/test_projeto.py -v
+        run: python -m pytest -v --cov=letterboxd --cov-report=term-missing
 
   atualizar:
     name: gerar stats.json
