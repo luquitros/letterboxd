@@ -5,6 +5,8 @@ import subprocess
 import time
 import webbrowser
 
+import pandas as pd
+
 from . import pipeline
 from .config import CONFIG, AppConfig
 from .pipeline import ExecutionSummary, PipelineOptions
@@ -48,7 +50,12 @@ def configure_logging() -> None:
 
 
 
-def enrich_movies_with_countries(df, cache_dict, *, config: AppConfig = CONFIG):
+def enrich_movies_with_countries(
+    df: pd.DataFrame,
+    cache_dict: dict[tuple[str, str], str],
+    *,
+    config: AppConfig = CONFIG,
+) -> tuple[list[dict[str, str]], dict[str, list[str]], set[str], ExecutionSummary]:
     return pipeline.enrich_movies_with_countries(
         df,
         cache_dict,
