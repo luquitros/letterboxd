@@ -1,15 +1,19 @@
 ﻿import json
 
-from letterboxd.stats import gerar_stats
+from letterboxd.stats import STATS_SCHEMA_VERSION, StatsPayload, gerar_stats
 
 
 def test_gerar_stats_basico(watched_csv, workspace_tmp_path):
     out = workspace_tmp_path / "stats.json"
-    gerar_stats(watched_csv, out)
+    payload = gerar_stats(watched_csv, out)
+    assert isinstance(payload, StatsPayload)
     assert out.exists()
     data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["schema_version"] == STATS_SCHEMA_VERSION
     assert data["total"] == 5
     assert data["active_years"] == 2
+    assert data["source_files"]["watched_csv"] == "watched.csv"
+    assert data["source_files"]["ratings_included"] is False
     assert "by_year" in data
     assert "by_decade" in data
     assert "monthly" in data
@@ -20,8 +24,11 @@ def test_gerar_stats_basico(watched_csv, workspace_tmp_path):
 
 def test_gerar_stats_com_ratings(watched_csv, ratings_csv, workspace_tmp_path):
     out = workspace_tmp_path / "stats.json"
-    gerar_stats(watched_csv, out, ratings_csv)
+    payload = gerar_stats(watched_csv, out, ratings_csv)
     data = json.loads(out.read_text(encoding="utf-8"))
+    assert payload.ratings is not None
+    assert data["source_files"]["ratings_csv"] == "ratings.csv"
+    assert data["source_files"]["ratings_included"] is True
     assert data["ratings"] is not None
     assert data["ratings"]["total_avaliados"] == 4
     assert data["ratings"]["media_geral"] == round((5 + 4.5 + 5 + 3.5) / 4, 2)

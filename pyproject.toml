@@ -61,6 +61,7 @@ files = [
   "src/letterboxd/site_renderer.py",
   "src/letterboxd/build_data.py",
   "src/letterboxd/build_site.py",
+  "src/letterboxd/stats.py",
 ]
 
 [[tool.mypy.overrides]]
