@@ -1,10 +1,11 @@
 ﻿from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 from tqdm import tqdm
 
-from .cache import cache_miss, carregar_cache, miss_sentinel, salvar_cache
-from .config import CACHE_PATH, CSV_PATH, DATA_DIR, DOCS_DIR, OUTPUT_HTML, RATINGS_PATH, STATS_JSON, TMDB_API_KEY
+from .cache import cache_miss, carregar_cache, limpar_cache, miss_sentinel, salvar_cache
+from .config import CONFIG, AppConfig
 from .mapa import gerar_mapa
 from .stats import gerar_stats
 from .tmdb import TMDBTemporaryError, buscar_paises
@@ -19,6 +20,7 @@ class PipelineOptions:
     stats_only: bool = False
     map_only: bool = False
     refresh_cache: bool = False
+    clear_cache: bool = False
 
 
 @dataclass(slots=True)
@@ -38,18 +40,20 @@ class DataArtifacts:
     map_generated: bool
 
 
-def ensure_output_dirs() -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+def ensure_output_dirs(config: AppConfig = CONFIG) -> None:
+    config.data_dir.mkdir(parents=True, exist_ok=True)
+    config.docs_dir.mkdir(parents=True, exist_ok=True)
 
 
-def validate_runtime_config() -> None:
-    if not TMDB_API_KEY:
+
+def validate_runtime_config(config: AppConfig = CONFIG) -> None:
+    if not config.tmdb_api_key:
         raise ValueError(
             "TMDB_API_KEY nao configurada.\n"
             "Crie um arquivo .env na raiz do projeto com:\n"
             "TMDB_API_KEY=sua_chave_aqui"
         )
+
 
 
 def normalize_year(value: str) -> str:
@@ -58,7 +62,8 @@ def normalize_year(value: str) -> str:
     return value.split(".", 1)[0].strip()
 
 
-def load_watched_csv(csv_path):
+
+def load_watched_csv(csv_path: Path):
     if not csv_path.exists():
         raise FileNotFoundError(
             f"Arquivo nao encontrado: {csv_path}\n"
@@ -83,18 +88,25 @@ def load_watched_csv(csv_path):
     return df
 
 
-def load_cache_state(refresh_cache: bool):
-    if refresh_cache:
-        empty_df = pd.DataFrame(columns=["Name", "Year", "Countries"])
+
+def load_cache_state(options: PipelineOptions, config: AppConfig, logger):
+    if options.clear_cache:
+        removed = limpar_cache(config.cache_path)
+        logger.info("Cache fisico removido: %s", "sim" if removed else "nao havia arquivo")
+
+    if options.refresh_cache or options.clear_cache:
+        empty_df = pd.DataFrame(columns=["Name", "Year", "Countries", "FetchedAt"])
         return empty_df, {}
 
-    return carregar_cache(CACHE_PATH)
+    return carregar_cache(config.cache_path, ttl_days=config.cache_ttl_days)
+
 
 
 def enrich_movies_with_countries(
     df: pd.DataFrame,
     cache_dict: dict[tuple[str, str], str],
     *,
+    tmdb_api_key: str,
     logger,
     sleep_fn,
     buscar_paises_fn=buscar_paises,
@@ -115,7 +127,7 @@ def enrich_movies_with_countries(
         else:
             summary.api_requests += 1
             try:
-                paises = buscar_paises_fn(nome, ano, TMDB_API_KEY)
+                paises = buscar_paises_fn(nome, ano, tmdb_api_key)
             except TMDBTemporaryError as exc:
                 summary.temporary_failures += 1
                 logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
@@ -140,53 +152,63 @@ def enrich_movies_with_countries(
     return novos_registros, filmes_por_pais, paises_distintos, summary
 
 
-def generate_map_artifact(filmes_por_pais: dict[str, list[str]], logger) -> None:
+
+def generate_map_artifact(filmes_por_pais: dict[str, list[str]], logger, config: AppConfig = CONFIG) -> None:
     logger.info("\nGerando mapa...")
-    gerar_mapa({pais: len(filmes) for pais, filmes in filmes_por_pais.items()}, str(OUTPUT_HTML))
+    gerar_mapa({pais: len(filmes) for pais, filmes in filmes_por_pais.items()}, str(config.output_html))
 
 
-def generate_stats_artifact(logger) -> None:
+
+def generate_stats_artifact(logger, config: AppConfig = CONFIG) -> None:
     logger.info("\nGerando stats.json...")
-    ratings_path = RATINGS_PATH if RATINGS_PATH.exists() else None
+    ratings_path = config.ratings_path if config.ratings_path.exists() else None
     if ratings_path:
         logger.info("   ratings.csv encontrado, incluindo avaliacoes...")
     else:
         logger.info("   ratings.csv nao encontrado, gerando stats sem avaliacoes...")
-    gerar_stats(CSV_PATH, STATS_JSON, ratings_path)
+    gerar_stats(config.csv_path, config.stats_json, ratings_path)
 
 
-def generate_data_artifacts(options: PipelineOptions, logger, sleep_fn) -> DataArtifacts:
-    ensure_output_dirs()
-    validate_runtime_config()
+
+def generate_data_artifacts(
+    options: PipelineOptions,
+    logger,
+    sleep_fn,
+    *,
+    config: AppConfig = CONFIG,
+) -> DataArtifacts:
+    ensure_output_dirs(config)
+    validate_runtime_config(config)
 
     logger.info("Carregando watched.csv...")
-    df = load_watched_csv(CSV_PATH)
+    df = load_watched_csv(config.csv_path)
     logger.info("   %s filmes encontrados.\n", len(df))
 
     if options.refresh_cache:
         logger.info("Refresh de cache ativado: ignorando cache atual da TMDB.")
-    cache_df, cache_dict = load_cache_state(options.refresh_cache)
+    cache_df, cache_dict = load_cache_state(options, config, logger)
 
     logger.info("Consultando TMDB API...")
     novos_registros, filmes_por_pais, paises_distintos, summary = enrich_movies_with_countries(
         df,
         cache_dict,
+        tmdb_api_key=config.tmdb_api_key,
         logger=logger,
         sleep_fn=sleep_fn,
     )
 
-    salvar_cache(cache_df, novos_registros, CACHE_PATH)
+    salvar_cache(cache_df, novos_registros, config.cache_path)
     logger.info("\n   %s paises distintos encontrados.", len(paises_distintos))
 
     map_generated = False
     stats_generated = False
 
     if not options.stats_only:
-        generate_map_artifact(filmes_por_pais, logger)
+        generate_map_artifact(filmes_por_pais, logger, config)
         map_generated = True
 
     if not options.map_only:
-        generate_stats_artifact(logger)
+        generate_stats_artifact(logger, config)
         stats_generated = True
 
     return DataArtifacts(

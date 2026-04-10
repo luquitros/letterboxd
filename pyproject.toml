@@ -8,6 +8,11 @@ version = "0.1.0"
 description = "Dashboard pessoal do Letterboxd com stats, mapa e wrapped"
 requires-python = ">=3.12"
 
+[project.scripts]
+letterboxd = "letterboxd.main:main"
+letterboxd-build-data = "letterboxd.build_data:main"
+letterboxd-build-site = "letterboxd.build_site:main"
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
@@ -28,7 +33,7 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-ra --strict-config --strict-markers"
+addopts = "-ra --strict-config --strict-markers -p no:cacheprovider"
 
 [tool.coverage.run]
 source = ["letterboxd"]

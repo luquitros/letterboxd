@@ -39,7 +39,13 @@ data/
   ratings.csv  # opcional
 ```
 
-Execucao recomendada como pacote:
+Execucao recomendada apos instalar com `-e .`:
+
+```powershell
+letterboxd
+```
+
+Alternativa equivalente como modulo:
 
 ```powershell
 python -m letterboxd
@@ -54,12 +60,14 @@ python src/main.py
 Modos uteis:
 
 ```powershell
-python -m letterboxd --no-open
-python -m letterboxd --stats-only
-python -m letterboxd --map-only
-python -m letterboxd --refresh-cache
-python -m letterboxd.build_data
-python -m letterboxd.build_site --open
+letterboxd --no-open
+letterboxd --stats-only
+letterboxd --map-only
+letterboxd --refresh-cache
+letterboxd --clear-cache
+letterboxd-build-data
+letterboxd-build-data --clear-cache
+letterboxd-build-site --open
 ```
 
 O script vai:
@@ -80,7 +88,10 @@ Arquitetura atual:
 - `letterboxd.build_site` expoe um comando dedicado para renderizar o site a partir dos artefatos existentes
 - `letterboxd.main` faz a orquestracao completa da CLI, combinando dados + renderizacao + abertura do navegador
 
-- `python -m letterboxd` usa `src/letterboxd/__main__.py`
+- `letterboxd` usa o entry point `letterboxd.main:main`
+- `letterboxd-build-data` usa `letterboxd.build_data:main`
+- `letterboxd-build-site` usa `letterboxd.build_site:main`
+- `python -m letterboxd` continua funcionando via `src/letterboxd/__main__.py`
 - `src/main.py` e `src/stats_only.py` ficaram como wrappers finos para compatibilidade
 - templates HTML vivem em `src/letterboxd/templates/`
 

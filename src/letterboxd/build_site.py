@@ -1,5 +1,6 @@
 ﻿import argparse
 
+from .config import CONFIG
 from .main import configure_logging, log_user_error, open_dashboard, render_site
 
 
@@ -9,13 +10,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     configure_logging()
     try:
-        render_site()
+        render_site(config=CONFIG)
         if args.open:
-            open_dashboard()
+            open_dashboard(config=CONFIG)
         return 0
     except KeyboardInterrupt:
         return 130

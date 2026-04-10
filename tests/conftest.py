@@ -1,4 +1,6 @@
-﻿from pathlib import Path
+﻿import shutil
+import uuid
+from pathlib import Path
 
 import pytest
 
@@ -24,21 +26,33 @@ Akira,1988,Japan
 
 
 @pytest.fixture
-def watched_csv(tmp_path: Path) -> Path:
-    path = tmp_path / "watched.csv"
+def workspace_tmp_path() -> Path:
+    base_dir = Path.cwd() / ".test-workspace"
+    base_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = base_dir / f"case-{uuid.uuid4().hex}"
+    tmp_dir.mkdir()
+    try:
+        yield tmp_dir
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+@pytest.fixture
+def watched_csv(workspace_tmp_path: Path) -> Path:
+    path = workspace_tmp_path / "watched.csv"
     path.write_text(WATCHED_CSV, encoding="utf-8")
     return path
 
 
 @pytest.fixture
-def ratings_csv(tmp_path: Path) -> Path:
-    path = tmp_path / "ratings.csv"
+def ratings_csv(workspace_tmp_path: Path) -> Path:
+    path = workspace_tmp_path / "ratings.csv"
     path.write_text(RATINGS_CSV, encoding="utf-8")
     return path
 
 
 @pytest.fixture
-def cache_csv(tmp_path: Path) -> Path:
-    path = tmp_path / "cache.csv"
+def cache_csv(workspace_tmp_path: Path) -> Path:
+    path = workspace_tmp_path / "cache.csv"
     path.write_text(CACHE_CSV, encoding="utf-8")
     return path

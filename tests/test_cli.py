@@ -25,8 +25,8 @@ def test_build_site_main_renderiza_e_abre_quando_pedido(monkeypatch):
     calls: list[str] = []
 
     monkeypatch.setattr("letterboxd.build_site.configure_logging", lambda: calls.append("logging"))
-    monkeypatch.setattr("letterboxd.build_site.render_site", lambda: calls.append("render"))
-    monkeypatch.setattr("letterboxd.build_site.open_dashboard", lambda: calls.append("open"))
+    monkeypatch.setattr("letterboxd.build_site.render_site", lambda **_kwargs: calls.append("render"))
+    monkeypatch.setattr("letterboxd.build_site.open_dashboard", lambda **_kwargs: calls.append("open"))
 
     assert build_site_main(["--open"]) == 0
     assert calls == ["logging", "render", "open"]
