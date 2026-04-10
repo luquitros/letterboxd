@@ -30,5 +30,8 @@ jobs:
       - name: rodar ruff
         run: python -m ruff check src tests
 
+      - name: rodar mypy
+        run: python -m mypy
+
       - name: rodar testes
         run: python -m pytest -v --cov=letterboxd --cov-report=term-missing

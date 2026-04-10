@@ -1,5 +1,8 @@
-﻿from dataclasses import dataclass
+﻿from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import pandas as pd
 from tqdm import tqdm
@@ -7,11 +10,25 @@ from tqdm import tqdm
 from .cache import cache_miss, carregar_cache, limpar_cache, miss_sentinel, salvar_cache
 from .config import CONFIG, AppConfig
 from .mapa import gerar_mapa
+from .models import CacheEntry, CountryAggregation, MovieRecord
 from .stats import gerar_stats
 from .tmdb import TMDBTemporaryError, buscar_paises
 
 REQUIRED_COLUMNS = {"Name", "Year"}
 TMDB_RATE_LIMIT_SECONDS = 0.25
+
+
+class LoggerLike(Protocol):
+    def info(self, msg: str, *args: object) -> None: ...
+    def warning(self, msg: str, *args: object) -> None: ...
+
+
+class SleepFn(Protocol):
+    def __call__(self, seconds: float, /) -> object: ...
+
+
+class CountryLookupFn(Protocol):
+    def __call__(self, name: str, year: str, api_key: str, /) -> list[str]: ...
 
 
 @dataclass(slots=True)
@@ -40,6 +57,7 @@ class DataArtifacts:
     map_generated: bool
 
 
+
 def ensure_output_dirs(config: AppConfig = CONFIG) -> None:
     config.data_dir.mkdir(parents=True, exist_ok=True)
     config.docs_dir.mkdir(parents=True, exist_ok=True)
@@ -63,7 +81,7 @@ def normalize_year(value: str) -> str:
 
 
 
-def load_watched_csv(csv_path: Path):
+def load_watched_csv(csv_path: Path) -> pd.DataFrame:
     if not csv_path.exists():
         raise FileNotFoundError(
             f"Arquivo nao encontrado: {csv_path}\n"
@@ -89,7 +107,11 @@ def load_watched_csv(csv_path: Path):
 
 
 
-def load_cache_state(options: PipelineOptions, config: AppConfig, logger):
+def load_cache_state(
+    options: PipelineOptions,
+    config: AppConfig,
+    logger: LoggerLike,
+) -> tuple[pd.DataFrame, dict[tuple[str, str], str]]:
     if options.clear_cache:
         removed = limpar_cache(config.cache_path)
         logger.info("Cache fisico removido: %s", "sim" if removed else "nao havia arquivo")
@@ -107,19 +129,16 @@ def enrich_movies_with_countries(
     cache_dict: dict[tuple[str, str], str],
     *,
     tmdb_api_key: str,
-    logger,
-    sleep_fn,
-    buscar_paises_fn=buscar_paises,
-):
-    novos_registros: list[dict] = []
-    paises_distintos: set[str] = set()
-    filmes_por_pais: dict[str, list[str]] = {}
+    logger: LoggerLike,
+    sleep_fn: SleepFn,
+    buscar_paises_fn: CountryLookupFn = buscar_paises,
+) -> tuple[list[dict[str, str]], dict[str, list[str]], set[str], ExecutionSummary]:
+    aggregation = CountryAggregation(new_cache_entries=[], movies_by_country={}, distinct_countries=set())
     summary = ExecutionSummary()
 
     for row in tqdm(df.itertuples(index=False), total=len(df)):
-        nome = str(getattr(row, "Name", "")).strip()
-        ano = normalize_year(str(getattr(row, "Year", "")))
-        chave = (nome, ano)
+        movie = MovieRecord.from_row(row)
+        chave = movie.cache_key
 
         if chave in cache_dict:
             paises_str = cache_dict[chave]
@@ -127,15 +146,15 @@ def enrich_movies_with_countries(
         else:
             summary.api_requests += 1
             try:
-                paises = buscar_paises_fn(nome, ano, tmdb_api_key)
+                paises = buscar_paises_fn(movie.name, movie.year, tmdb_api_key)
             except TMDBTemporaryError as exc:
                 summary.temporary_failures += 1
-                logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", nome, ano or "?", exc)
+                logger.warning("   Falha temporaria ao consultar TMDB para '%s' (%s): %s", movie.name, movie.year or "?", exc)
                 continue
 
             paises_str = "|".join(paises) if paises else miss_sentinel()
             cache_dict[chave] = paises_str
-            novos_registros.append({"Name": nome, "Year": ano, "Countries": paises_str})
+            aggregation.new_cache_entries.append(CacheEntry(name=movie.name, year=movie.year, countries=paises_str))
             sleep_fn(TMDB_RATE_LIMIT_SECONDS)
 
         if cache_miss(paises_str) or not paises_str:
@@ -143,23 +162,32 @@ def enrich_movies_with_countries(
             continue
 
         for pais in paises_str.split("|"):
-            pais = pais.strip()
-            if not pais:
+            country_name = pais.strip()
+            if not country_name:
                 continue
-            paises_distintos.add(pais)
-            filmes_por_pais.setdefault(pais, []).append(nome)
+            aggregation.distinct_countries.add(country_name)
+            aggregation.movies_by_country.setdefault(country_name, []).append(movie.name)
 
-    return novos_registros, filmes_por_pais, paises_distintos, summary
+    return (
+        [entry.to_mapping() for entry in aggregation.new_cache_entries],
+        aggregation.movies_by_country,
+        aggregation.distinct_countries,
+        summary,
+    )
 
 
 
-def generate_map_artifact(filmes_por_pais: dict[str, list[str]], logger, config: AppConfig = CONFIG) -> None:
+def generate_map_artifact(
+    filmes_por_pais: dict[str, list[str]],
+    logger: LoggerLike,
+    config: AppConfig = CONFIG,
+) -> None:
     logger.info("\nGerando mapa...")
     gerar_mapa({pais: len(filmes) for pais, filmes in filmes_por_pais.items()}, str(config.output_html))
 
 
 
-def generate_stats_artifact(logger, config: AppConfig = CONFIG) -> None:
+def generate_stats_artifact(logger: LoggerLike, config: AppConfig = CONFIG) -> None:
     logger.info("\nGerando stats.json...")
     ratings_path = config.ratings_path if config.ratings_path.exists() else None
     if ratings_path:
@@ -172,8 +200,8 @@ def generate_stats_artifact(logger, config: AppConfig = CONFIG) -> None:
 
 def generate_data_artifacts(
     options: PipelineOptions,
-    logger,
-    sleep_fn,
+    logger: LoggerLike,
+    sleep_fn: SleepFn,
     *,
     config: AppConfig = CONFIG,
 ) -> DataArtifacts:

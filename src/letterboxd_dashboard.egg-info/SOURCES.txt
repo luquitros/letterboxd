@@ -2,10 +2,13 @@ README.md
 pyproject.toml
 src/letterboxd/__init__.py
 src/letterboxd/__main__.py
+src/letterboxd/build_data.py
+src/letterboxd/build_site.py
 src/letterboxd/cache.py
 src/letterboxd/config.py
 src/letterboxd/main.py
 src/letterboxd/mapa.py
+src/letterboxd/pipeline.py
 src/letterboxd/site_renderer.py
 src/letterboxd/stats.py
 src/letterboxd/stats_only.py
@@ -16,4 +19,13 @@ src/letterboxd/templates/wrapped_generator.html
 src/letterboxd_dashboard.egg-info/PKG-INFO
 src/letterboxd_dashboard.egg-info/SOURCES.txt
 src/letterboxd_dashboard.egg-info/dependency_links.txt
+src/letterboxd_dashboard.egg-info/entry_points.txt
 src/letterboxd_dashboard.egg-info/top_level.txt
+tests/test_cache.py
+tests/test_cli.py
+tests/test_config.py
+tests/test_mapa.py
+tests/test_pipeline.py
+tests/test_site_renderer.py
+tests/test_stats.py
+tests/test_tmdb.py

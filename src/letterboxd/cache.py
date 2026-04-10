@@ -1,16 +1,22 @@
-﻿import logging
+﻿from __future__ import annotations
+
+import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
+
+from .models import CacheEntry, CacheKey, TimestampFactory
 
 _MISS_SENTINEL = "__NOT_FOUND__"
 _CACHE_COLUMNS = ["Name", "Year", "Countries", "FetchedAt"]
 logger = logging.getLogger(__name__)
 
 
-def _build_cache_key(name: str, year: str) -> tuple[str, str]:
+
+def _build_cache_key(name: str, year: str) -> CacheKey:
     return name.strip(), year.strip()
+
 
 
 def _normalize_cache_frame(df: pd.DataFrame) -> pd.DataFrame:
@@ -19,6 +25,7 @@ def _normalize_cache_frame(df: pd.DataFrame) -> pd.DataFrame:
         if column not in normalized.columns:
             normalized[column] = ""
     return normalized[_CACHE_COLUMNS].fillna("")
+
 
 
 def _apply_ttl(df: pd.DataFrame, ttl_days: int, now: datetime) -> pd.DataFrame:
@@ -31,12 +38,13 @@ def _apply_ttl(df: pd.DataFrame, ttl_days: int, now: datetime) -> pd.DataFrame:
     return df.loc[keep_mask].copy()
 
 
+
 def carregar_cache(
     cache_path: Path,
     *,
     ttl_days: int = 0,
     now: datetime | None = None,
-) -> tuple[pd.DataFrame, dict[tuple[str, str], str]]:
+) -> tuple[pd.DataFrame, dict[CacheKey, str]]:
     try:
         df = pd.read_csv(cache_path, dtype=str).fillna("")
     except FileNotFoundError:
@@ -45,27 +53,23 @@ def carregar_cache(
     normalized = _normalize_cache_frame(df)
     current_time = now or datetime.now(UTC)
     filtered = _apply_ttl(normalized, ttl_days, current_time)
-    cache_dict = {
-        _build_cache_key(row["Name"], row["Year"]): row["Countries"]
-        for _, row in filtered.iterrows()
-    }
+    cache_entries = [CacheEntry.from_mapping(row) for row in filtered.to_dict(orient="records")]
+    cache_dict = {entry.cache_key: entry.countries for entry in cache_entries}
     return filtered, cache_dict
+
 
 
 def cache_miss(paises_str: str) -> bool:
     return paises_str == _MISS_SENTINEL
 
 
-def salvar_cache(cache_df: pd.DataFrame, novos_registros: list[dict], cache_path: Path) -> None:
+
+def salvar_cache(cache_df: pd.DataFrame, novos_registros: list[dict[str, str]], cache_path: Path) -> None:
     if not novos_registros:
         return
 
-    timestamp = datetime.now(UTC).isoformat()
-    normalized_records = []
-    for registro in novos_registros:
-        enriched = dict(registro)
-        enriched.setdefault("FetchedAt", timestamp)
-        normalized_records.append(enriched)
+    timestamp = TimestampFactory.now_iso()
+    normalized_records = [CacheEntry.from_mapping(registro).to_mapping(fetched_at=timestamp) for registro in novos_registros]
 
     existing = _normalize_cache_frame(cache_df) if not cache_df.empty else pd.DataFrame(columns=_CACHE_COLUMNS)
     novo_cache = pd.concat([existing, pd.DataFrame(normalized_records)], ignore_index=True)
@@ -75,11 +79,13 @@ def salvar_cache(cache_df: pd.DataFrame, novos_registros: list[dict], cache_path
     logger.info(" Cache atualizado: %s encontrados, %s nao encontrados.", acertos, falhas)
 
 
+
 def limpar_cache(cache_path: Path) -> bool:
     if not cache_path.exists():
         return False
     cache_path.unlink()
     return True
+
 
 
 def miss_sentinel() -> str:

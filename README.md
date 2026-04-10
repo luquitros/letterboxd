@@ -83,6 +83,7 @@ A logica principal agora vive no pacote `letterboxd` dentro de `src/letterboxd/`
 Arquitetura atual:
 
 - `letterboxd.pipeline` cuida da camada de dados: CSVs, cache, TMDB, `stats.json` e mapa
+- `letterboxd.models` concentra domain dataclasses como filmes e entradas de cache
 - `letterboxd.site_renderer` cuida apenas da renderizacao das paginas em `docs/`
 - `letterboxd.build_data` expoe um comando dedicado para atualizar so os artefatos de dados
 - `letterboxd.build_site` expoe um comando dedicado para renderizar o site a partir dos artefatos existentes
@@ -101,6 +102,12 @@ Lint local:
 
 ```powershell
 python -m ruff check src tests
+```
+
+Type checking dos modulos principais:
+
+```powershell
+python -m mypy
 ```
 
 Cobertura de testes:
