@@ -1,5 +1,12 @@
 # letterboxd
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![HTML5](https://img.shields.io/badge/HTML5-templates-orange.svg)](src/letterboxd/templates/)
+[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC.svg)](tests/)
+[![Lint](https://img.shields.io/badge/lint-ruff-46a758.svg)](https://docs.astral.sh/ruff/)
+[![Type Checked](https://img.shields.io/badge/type%20checked-mypy-2a6db2.svg)](https://mypy-lang.org/)
+
 Gera um dashboard pessoal do Letterboxd com mapa de paises de producao e estatisticas em `docs/`.
 
 ## Configuracao
@@ -153,3 +160,11 @@ python -m pytest -v
 
 - `ratings.csv nao encontrado`
   Nao e erro. O projeto continua, apenas sem estatisticas de avaliacao.
+
+## Changelog
+
+As mudancas principais do projeto ficam registradas em [CHANGELOG.md](CHANGELOG.md).
+
+## Licenca
+
+Distribuido sob a licenca MIT. Veja [LICENSE](LICENSE).
