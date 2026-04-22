@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+import json
+from pathlib import Path
 
 from .config import CONFIG, AppConfig
 
@@ -7,12 +8,22 @@ PAGE_TEMPLATES = ("index.html", "dashboard.html", "wrapped_generator.html")
 STATS_PLACEHOLDER = "{{EMBEDDED_STATS}}"
 
 
-
 def load_stats_payload(config: AppConfig = CONFIG) -> str:
-    if config.stats_json.exists():
-        return config.stats_json.read_text(encoding="utf-8")
-    return "{}"
+    if not config.stats_json.exists():
+        raise FileNotFoundError(
+            f"Arquivo nao encontrado: {config.stats_json}\n"
+            "Execute `letterboxd-build-data` antes de renderizar o site."
+        )
 
+    payload = config.stats_json.read_text(encoding="utf-8")
+    try:
+        json.loads(payload)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"stats.json invalido em {config.stats_json}: {exc.msg} (linha {exc.lineno}, coluna {exc.colno}).\n"
+            "Regere os dados com `letterboxd-build-data --clear-cache`."
+        ) from exc
+    return payload
 
 
 def render_docs_pages(stats_payload: str | None = None, *, config: AppConfig = CONFIG) -> None:

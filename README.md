@@ -129,7 +129,7 @@ Para ver cobertura explicitamente:
 python -m pytest -v --cov=letterboxd --cov-report=term-missing
 ```
 
-O projeto agora usa cobertura via `pytest-cov` no CI e ela tambem fica disponivel localmente depois de atualizar as dependencias.
+O projeto agora usa cobertura via `pytest-cov` no CI e ela tambem fica disponivel localmente depois de atualizar as dependencias. O CI tambem inclui scan de segredos com `gitleaks` antes dos testes.
 
 ## Testes
 
@@ -161,6 +161,9 @@ python -m pytest -v
 - `ratings.csv nao encontrado`
   Nao e erro. O projeto continua, apenas sem estatisticas de avaliacao.
 
+- `Arquivo nao encontrado: ...stats.json` ao rodar `letterboxd-build-site`
+  Execute `letterboxd-build-data` primeiro para gerar os artefatos antes da renderizacao.
+
 ## Changelog
 
 As mudancas principais do projeto ficam registradas em [CHANGELOG.md](CHANGELOG.md).
@@ -168,3 +171,4 @@ As mudancas principais do projeto ficam registradas em [CHANGELOG.md](CHANGELOG.
 ## Licenca
 
 Distribuido sob a licenca MIT. Veja [LICENSE](LICENSE).
+
