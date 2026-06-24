@@ -1,0 +1,4 @@
+[console_scripts]
+letterboxd = letterboxd.main:main
+letterboxd-build-data = letterboxd.build_data:main
+letterboxd-build-site = letterboxd.build_site:main

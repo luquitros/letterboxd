@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Letterboxd Stats &middot; luquitros</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #081018;
+    --panel: rgba(12, 22, 32, 0.88);
+    --border: rgba(186, 210, 231, 0.12);
+    --text: #e7f2fb;
+    --muted: #8fa4b8;
+    --muted-strong: #bfd2e2;
+    --accent: #00e054;
+    --shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: radial-gradient(circle at top left, rgba(0, 224, 84, 0.12), transparent 24%), radial-gradient(circle at 88% 10%, rgba(52, 120, 255, 0.14), transparent 20%), linear-gradient(180deg, #071018 0%, #0a141d 48%, #081018 100%); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+  .page-shell { width: min(1380px, calc(100vw - 28px)); margin: 14px auto; border: 1px solid var(--border); border-radius: 28px; background: linear-gradient(180deg, rgba(9, 17, 26, 0.94), rgba(8, 16, 24, 0.9)); box-shadow: var(--shadow); overflow: hidden; backdrop-filter: blur(18px); }
+  header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 28px; border-bottom: 1px solid var(--border); background: rgba(8, 16, 24, 0.82); backdrop-filter: blur(18px); }
+  .header-left, .header-actions { display: flex; align-items: center; gap: 14px; }
+  .logo-circle { width: 32px; height: 32px; border-radius: 999px; background: var(--accent); display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(0, 224, 84, 0.08); }
+  .logo-inner { width: 12px; height: 12px; border-radius: 999px; background: #081018; }
+  .header-title, .header-chip, .intro-eyebrow, .panel-title, .stat-label, footer { font-family: 'IBM Plex Mono', monospace; }
+  .header-title { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.16em; }
+  .header-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .header-chip { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #c7d8e7; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 999px; }
+  .intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr); gap: 18px; padding: 26px 28px 20px; border-bottom: 1px solid var(--border); }
+  .intro-eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted-strong); margin-bottom: 16px; }
+  .intro-eyebrow::before { content: ''; width: 34px; height: 1px; background: rgba(255, 255, 255, 0.16); }
+  .intro-title { font-size: clamp(2.2rem, 4vw, 3.8rem); letter-spacing: -0.06em; line-height: 0.98; margin-bottom: 14px; max-width: 12ch; }
+  .intro-copy { color: var(--muted); line-height: 1.75; max-width: 62ch; }
+  .intro-side { border: 1px solid var(--border); border-radius: 22px; padding: 18px 20px; background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)); display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+  .intro-side strong { font-size: 22px; letter-spacing: -0.04em; }
+  .intro-side p { color: var(--muted); line-height: 1.7; }
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 0 28px 24px; }
+  .stat-card { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 22px; padding: 20px 22px; min-height: 122px; }
+  .stat-val { font-size: 46px; font-weight: 800; color: var(--accent); letter-spacing: -0.07em; line-height: 0.95; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.13em; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 28px 28px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 24px; padding: 24px; }
+  .panel.full { grid-column: 1 / -1; }
+  .panel-title { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; color: var(--muted-strong); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; }
+  .panel-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 6px rgba(0, 224, 84, 0.1); flex-shrink: 0; }
+  .chart-wrap  { position: relative; width: 100%; }
+  .year-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .year-badge { padding: 14px 10px; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; text-align: center; transition: border-color 0.2s, background 0.2s; background: rgba(255,255,255,0.02); }
+  .year-badge:hover { border-color: rgba(0,224,84,0.35); background: rgba(0,224,84,0.05); }
+  .year-val { font-size: 22px; font-weight: 700; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .year-lbl { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .decade-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .decade-label { width: 48px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .decade-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .decade-fill { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .decade-fill.peak { background: var(--accent); }
+  .decade-count { width: 34px; font-size: 12px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .decade-count.peak { color: var(--accent); }
+  .heatmap-wrap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+  .heatmap-cell { width: 13px; height: 13px; border-radius: 4px; background: rgba(255,255,255,0.05); transition: transform 0.1s; cursor: default; flex-shrink: 0; }
+  .heatmap-cell:hover { transform: scale(1.28); }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+  .heatmap-legend-cells { display: flex; gap: 3px; }
+  .heatmap-legend-cell  { width: 13px; height: 13px; border-radius: 4px; }
+  .rating-overview { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; }
+  .rating-big { font-size: 64px; font-weight: 800; color: var(--accent); letter-spacing: -0.08em; line-height: 1; }
+  .rating-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .rating-bars { display: flex; flex-direction: column; gap: 7px; }
+  .rating-row  { display: flex; align-items: center; gap: 10px; }
+  .rating-lbl  { font-size: 12px; color: var(--muted); width: 28px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .rating-track { flex: 1; height: 7px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .rating-fill  { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s cubic-bezier(0.4,0,0.2,1); }
+  .rating-fill.peak { background: var(--accent); }
+  .rating-cnt  { font-size: 12px; color: var(--muted); width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+  .avg-year-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avg-year-lbl { width: 36px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; }
+  .avg-year-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .avg-year-fill { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.7s; }
+  .avg-year-fill.peak { background: var(--accent); }
+  .avg-year-val { width: 32px; font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .avg-year-val.peak { color: var(--accent); }
+  .top5-list { display: flex; flex-direction: column; gap: 10px; }
+  .top5-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; }
+  .top5-stars { font-size: 14px; color: var(--accent); flex-shrink: 0; }
+  .top5-name  { font-size: 14px; color: #d6e4f0; font-weight: 500; letter-spacing: -0.2px; }
+  .top5-year  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .panel-note { font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.7; }
+  .empty-panel { display: grid; place-items: center; min-height: 220px; text-align: center; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); }
+  .empty-panel-inner { max-width: 420px; }
+  .empty-panel-kicker { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-strong); margin-bottom: 14px; }
+  .empty-panel-title { font-size: 24px; letter-spacing: -0.04em; margin-bottom: 10px; }
+  .empty-panel-copy { color: var(--muted); line-height: 1.75; }
+  footer { display: flex; justify-content: space-between; gap: 12px; padding: 0 28px 24px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #74879a; }
+  /* insights / raio-x */
+  .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .insight-card { position: relative; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 16px 18px; background: linear-gradient(180deg, rgba(0,224,84,0.04), rgba(255,255,255,0.015)); }
+  .insight-emoji { font-size: 20px; line-height: 1; }
+  .insight-val { font-size: 24px; font-weight: 800; letter-spacing: -0.04em; color: var(--accent); margin: 10px 0 4px; line-height: 1.05; }
+  .insight-lbl { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  /* weekday bars */
+  .wd-row { display: flex; align-items: center; gap: 14px; margin-bottom: 11px; }
+  .wd-label { width: 42px; font-size: 12px; color: var(--muted); text-align: right; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; }
+  .wd-track { flex: 1; height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+  .wd-fill { height: 100%; border-radius: 999px; background: rgba(0,192,48,0.5); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .wd-fill.peak { background: var(--accent); }
+  .wd-count { width: 42px; font-size: 12px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .wd-count.peak { color: var(--accent); }
+  /* search on top5 */
+  .top5-tools { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .top5-search { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 14px; padding: 11px 16px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .top5-search:focus { border-color: rgba(0,224,84,0.4); }
+  .top5-search::placeholder { color: #5d7184; }
+  .top5-count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.06em; white-space: nowrap; }
+  .top5-empty { font-size: 13px; color: var(--muted); padding: 14px 4px; }
+  /* entrance animation */
+  .panel, .stat-card { opacity: 0; transform: translateY(14px); }
+  .reveal-on .panel, .reveal-on .stat-card { animation: rise 0.55s cubic-bezier(0.22,0.61,0.36,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .panel, .stat-card { opacity: 1; transform: none; animation: none !important; } }
+  @media (max-width: 1020px) { .intro, .panels, .stat-grid { grid-template-columns: 1fr; } .year-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px) { .page-shell { width: calc(100vw - 16px); margin: 8px auto; border-radius: 24px; } header, .intro, .stat-grid, .panels, footer { padding-left: 16px; padding-right: 16px; } header, footer { flex-direction: column; align-items: flex-start; } .header-actions { flex-wrap: wrap; } .rating-overview { grid-template-columns: 1fr; } .year-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<div class="page-shell">
+<header>
+  <div class="header-left">
+    <div class="logo-circle"><div class="logo-inner"></div></div>
+    <div>
+      <div class="header-title">letterboxd dashboard</div>
+      <div class="header-sub" id="headerSub">carregando contexto...</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <span class="header-chip">hist&oacute;rico pessoal</span>
+    <span class="header-chip">luquitros</span>
+  </div>
+</header>
+<section class="intro">
+  <div>
+    <p class="intro-eyebrow">leitura anal&iacute;tica do seu cat&aacute;logo</p>
+    <h1 class="intro-title">Um painel que explica o seu ritmo de cinema.</h1>
+    <p class="intro-copy">Aqui o export do Letterboxd ganha contexto: quando voc&ecirc; mais viu filmes, quais d&eacute;cadas dominam seu repert&oacute;rio, como suas notas se distribuem e por onde passa o mapa de produ&ccedil;&atilde;o dos seus t&iacute;tulos.</p>
+  </div>
+  <aside class="intro-side">
+    <strong>Do volume ao padr&atilde;o.</strong>
+    <p>Os n&uacute;meros principais ficam no topo; os pain&eacute;is abaixo contam a hist&oacute;ria completa sem cara de relat&oacute;rio cru.</p>
+  </aside>
+</section>
+<div class="stat-grid">
+  <div class="stat-card"><div class="stat-val" id="sTotal">&mdash;</div><div class="stat-label">filmes assistidos no total</div></div>
+  <div class="stat-card"><div class="stat-val" id="sYears">&mdash;</div><div class="stat-label">anos com registros</div></div>
+  <div class="stat-card"><div class="stat-val" id="sAvg">&mdash;</div><div class="stat-label">m&eacute;dia de filmes por ano</div></div>
+  <div class="stat-card"><div class="stat-val" id="sRecord">&mdash;</div><div class="stat-label" id="sRecordLabel">recorde em um dia</div></div>
+</div>
+<div class="panels">
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>raio-x do seu cinema</div><div class="insight-grid" id="insightGrid"></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>ritmo mensal de visualiza&ccedil;&atilde;o</div><div class="chart-wrap" style="height:150px"><canvas id="chartTimeline"></canvas></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>heatmap de atividade</div><div id="heatmapContainer"></div><div class="heatmap-legend">menos<div class="heatmap-legend-cells" id="legendCells"></div>mais</div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>dia da semana favorito</div><div id="weekdayRows"></div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>concentra&ccedil;&atilde;o por m&ecirc;s</div><div id="monthRows"></div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>anos mais intensos</div><div class="year-grid" id="yearGrid"></div></div>
+  <div class="panel"><div class="panel-title"><div class="panel-dot"></div>d&eacute;cadas mais presentes</div><div id="decadeRows"></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>comparativo anual</div><div class="chart-wrap" style="height:170px"><canvas id="chartYears"></canvas></div></div>
+  <div class="panel" id="panelRatingDist"><div class="panel-title"><div class="panel-dot"></div>distribui&ccedil;&atilde;o de notas</div><div class="rating-overview"><div><div class="rating-big" id="ratingMedia"></div><div class="rating-sub" id="ratingTotal">&mdash; filmes avaliados</div></div><div class="rating-bars" id="ratingBars"></div></div></div>
+  <div class="panel" id="panelRatingYear"><div class="panel-title"><div class="panel-dot"></div>m&eacute;dia das notas por ano</div><div id="avgYearRows"></div></div>
+  <div class="panel full" id="panelTop5"><div class="panel-title"><div class="panel-dot"></div>nota m&aacute;xima: seus destaques</div><div class="top5-tools"><input type="text" class="top5-search" id="top5Search" placeholder="Buscar entre os filmes nota 5..." autocomplete="off"><span class="top5-count" id="top5Count"></span></div><div class="top5-list" id="top5List"></div></div>
+  <div class="panel full"><div class="panel-title"><div class="panel-dot"></div>mapa mundial de produ&ccedil;&atilde;o</div><iframe src="mapa_cinema.html" style="width:100%;height:540px;border:none;border-radius:18px;display:block;background:#081018;" loading="lazy"></iframe><p class="panel-note">Para atualizar o mapa com os dados mais recentes, rode <code style="color:#00e054;font-family:'IBM Plex Mono',monospace">python src/main.py</code>.</p></div>
+</div>
+<footer><span id="footerDate">dados exportados do letterboxd</span><span>luquitros &middot; painel de estat&iacute;sticas</span></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script id="embedded-stats" type="application/json">
+{
+  "gerado_em": "2026-04-10",
+  "total": 1301,
+  "active_years": 8,
+  "avg_per_year": 163,
+  "top_day": {
+    "date": "23 Jul 2023",
+    "count": 328
+  },
+  "by_year": {
+    "2019": 232,
+    "2020": 30,
+    "2021": 13,
+    "2022": 137,
+    "2023": 693,
+    "2024": 142,
+    "2025": 48,
+    "2026": 6
+  },
+  "by_decade": {
+    "1870s": 1,
+    "1910s": 1,
+    "1920s": 3,
+    "1930s": 3,
+    "1940s": 7,
+    "1950s": 20,
+    "1960s": 56,
+    "1970s": 55,
+    "1980s": 73,
+    "1990s": 131,
+    "2000s": 274,
+    "2010s": 486,
+    "2020s": 191
+  },
+  "monthly": {
+    "2019-06": 104,
+    "2019-07": 81,
+    "2019-08": 31,
+    "2019-09": 7,
+    "2019-10": 9,
+    "2020-01": 3,
+    "2020-02": 6,
+    "2020-03": 1,
+    "2020-06": 5,
+    "2020-07": 9,
+    "2020-09": 3,
+    "2020-10": 1,
+    "2020-12": 2,
+    "2021-01": 5,
+    "2021-09": 1,
+    "2021-10": 6,
+    "2021-12": 1,
+    "2022-01": 6,
+    "2022-02": 37,
+    "2022-03": 20,
+    "2022-04": 6,
+    "2022-05": 1,
+    "2022-06": 25,
+    "2022-07": 9,
+    "2022-09": 1,
+    "2022-10": 1,
+    "2022-11": 4,
+    "2022-12": 27,
+    "2023-01": 30,
+    "2023-02": 17,
+    "2023-03": 64,
+    "2023-04": 10,
+    "2023-05": 74,
+    "2023-06": 68,
+    "2023-07": 359,
+    "2023-08": 9,
+    "2023-09": 18,
+    "2023-10": 14,
+    "2023-11": 11,
+    "2023-12": 19,
+    "2024-01": 28,
+    "2024-02": 8,
+    "2024-03": 5,
+    "2024-04": 10,
+    "2024-05": 7,
+    "2024-06": 7,
+    "2024-07": 4,
+    "2024-08": 10,
+    "2024-09": 17,
+    "2024-10": 10,
+    "2024-11": 17,
+    "2024-12": 19,
+    "2025-01": 16,
+    "2025-02": 6,
+    "2025-03": 2,
+    "2025-04": 13,
+    "2025-05": 2,
+    "2025-06": 3,
+    "2025-09": 1,
+    "2025-10": 2,
+    "2025-11": 3,
+    "2026-01": 5,
+    "2026-02": 1
+  },
+  "heatmap": {
+    "2019-06-14": 1,
+    "2019-06-16": 42,
+    "2019-06-17": 7,
+    "2019-06-22": 1,
+    "2019-06-23": 50,
+    "2019-06-29": 3,
+    "2019-07-01": 14,
+    "2019-07-03": 31,
+    "2019-07-04": 4,
+    "2019-07-05": 3,
+    "2019-07-07": 1,
+    "2019-07-09": 4,
+    "2019-07-10": 1,
+    "2019-07-11": 3,
+    "2019-07-12": 1,
+    "2019-07-16": 1,
+    "2019-07-17": 4,
+    "2019-07-18": 3,
+    "2019-07-19": 4,
+    "2019-07-20": 1,
+    "2019-07-24": 1,
+    "2019-07-26": 1,
+    "2019-07-27": 1,
+    "2019-07-29": 1,
+    "2019-07-30": 2,
+    "2019-08-03": 1,
+    "2019-08-08": 1,
+    "2019-08-09": 1,
+    "2019-08-12": 2,
+    "2019-08-15": 6,
+    "2019-08-19": 1,
+    "2019-08-21": 1,
+    "2019-08-23": 4,
+    "2019-08-24": 8,
+    "2019-08-25": 2,
+    "2019-08-26": 2,
+    "2019-08-28": 2,
+    "2019-09-08": 1,
+    "2019-09-09": 5,
+    "2019-09-21": 1,
+    "2019-10-05": 1,
+    "2019-10-06": 3,
+    "2019-10-13": 4,
+    "2019-10-17": 1,
+    "2020-01-16": 3,
+    "2020-02-09": 2,
+    "2020-02-18": 4,
+    "2020-03-08": 1,
+    "2020-06-04": 4,
+    "2020-06-29": 1,
+    "2020-07-18": 1,
+    "2020-07-19": 2,
+    "2020-07-21": 1,
+    "2020-07-22": 3,
+    "2020-07-23": 1,
+    "2020-07-25": 1,
+    "2020-09-15": 3,
+    "2020-10-27": 1,
+    "2020-12-17": 2,
+    "2021-01-06": 3,
+    "2021-01-18": 2,
+    "2021-09-17": 1,
+    "2021-10-04": 1,
+    "2021-10-18": 1,
+    "2021-10-24": 1,
+    "2021-10-30": 2,
+    "2021-10-31": 1,
+    "2021-12-29": 1,
+    "2022-01-02": 2,
+    "2022-01-10": 1,
+    "2022-01-30": 1,
+    "2022-01-31": 2,
+    "2022-02-02": 23,
+    "2022-02-07": 1,
+    "2022-02-09": 1,
+    "2022-02-10": 10,
+    "2022-02-12": 1,
+    "2022-02-17": 1,
+    "2022-03-02": 1,
+    "2022-03-08": 1,
+    "2022-03-19": 1,
+    "2022-03-21": 2,
+    "2022-03-23": 3,
+    "2022-03-26": 1,
+    "2022-03-27": 3,
+    "2022-03-29": 6,
+    "2022-03-30": 2,
+    "2022-04-04": 1,
+    "2022-04-06": 1,
+    "2022-04-16": 2,
+    "2022-04-19": 1,
+    "2022-04-20": 1,
+    "2022-05-31": 1,
+    "2022-06-19": 1,
+    "2022-06-20": 22,
+    "2022-06-22": 1,
+    "2022-06-28": 1,
+    "2022-07-11": 1,
+    "2022-07-12": 1,
+    "2022-07-20": 1,
+    "2022-07-24": 1,
+    "2022-07-29": 5,
+    "2022-09-08": 1,
+    "2022-10-30": 1,
+    "2022-11-27": 1,
+    "2022-11-28": 1,
+    "2022-11-29": 1,
+    "2022-11-30": 1,
+    "2022-12-01": 1,
+    "2022-12-02": 1,
+    "2022-12-04": 1,
+    "2022-12-05": 1,
+    "2022-12-07": 3,
+    "2022-12-18": 19,
+    "2022-12-31": 1,
+    "2023-01-01": 1,
+    "2023-01-05": 1,
+    "2023-01-15": 1,
+    "2023-01-24": 1,
+    "2023-01-26": 2,
+    "2023-01-27": 1,
+    "2023-01-28": 19,
+    "2023-01-30": 3,
+    "2023-01-31": 1,
+    "2023-02-03": 1,
+    "2023-02-11": 1,
+    "2023-02-13": 1,
+    "2023-02-14": 2,
+    "2023-02-21": 2,
+    "2023-02-23": 2,
+    "2023-02-24": 1,
+    "2023-02-25": 1,
+    "2023-02-27": 5,
+    "2023-02-28": 1,
+    "2023-03-13": 1,
+    "2023-03-19": 1,
+    "2023-03-20": 1,
+    "2023-03-21": 46,
+    "2023-03-22": 2,
+    "2023-03-23": 1,
+    "2023-03-26": 5,
+    "2023-03-27": 6,
+    "2023-03-29": 1,
+    "2023-04-25": 1,
+    "2023-04-26": 3,
+    "2023-04-28": 1,
+    "2023-04-29": 2,
+    "2023-04-30": 3,
+    "2023-05-01": 1,
+    "2023-05-02": 2,
+    "2023-05-05": 1,
+    "2023-05-06": 1,
+    "2023-05-07": 1,
+    "2023-05-09": 66,
+    "2023-05-14": 1,
+    "2023-05-24": 1,
+    "2023-06-05": 1,
+    "2023-06-08": 1,
+    "2023-06-09": 1,
+    "2023-06-11": 1,
+    "2023-06-12": 1,
+    "2023-06-13": 1,
+    "2023-06-14": 9,
+    "2023-06-16": 17,
+    "2023-06-17": 9,
+    "2023-06-20": 17,
+    "2023-06-21": 1,
+    "2023-06-22": 1,
+    "2023-06-23": 1,
+    "2023-06-24": 3,
+    "2023-06-25": 1,
+    "2023-06-26": 1,
+    "2023-06-27": 1,
+    "2023-06-28": 1,
+    "2023-07-02": 1,
+    "2023-07-05": 1,
+    "2023-07-06": 2,
+    "2023-07-07": 1,
+    "2023-07-08": 2,
+    "2023-07-09": 2,
+    "2023-07-21": 1,
+    "2023-07-22": 19,
+    "2023-07-23": 328,
+    "2023-07-27": 1,
+    "2023-07-30": 1,
+    "2023-08-01": 1,
+    "2023-08-09": 2,
+    "2023-08-11": 1,
+    "2023-08-12": 1,
+    "2023-08-19": 1,
+    "2023-08-20": 1,
+    "2023-08-27": 1,
+    "2023-08-28": 1,
+    "2023-09-04": 1,
+    "2023-09-05": 1,
+    "2023-09-07": 1,
+    "2023-09-09": 2,
+    "2023-09-12": 3,
+    "2023-09-15": 2,
+    "2023-09-16": 1,
+    "2023-09-17": 1,
+    "2023-09-25": 1,
+    "2023-09-26": 4,
+    "2023-09-28": 1,
+    "2023-10-02": 2,
+    "2023-10-08": 1,
+    "2023-10-09": 1,
+    "2023-10-10": 1,
+    "2023-10-16": 1,
+    "2023-10-17": 1,
+    "2023-10-20": 1,
+    "2023-10-23": 1,
+    "2023-10-27": 3,
+    "2023-10-30": 1,
+    "2023-10-31": 1,
+    "2023-11-04": 1,
+    "2023-11-09": 1,
+    "2023-11-11": 1,
+    "2023-11-12": 1,
+    "2023-11-15": 1,
+    "2023-11-16": 1,
+    "2023-11-20": 1,
+    "2023-11-22": 1,
+    "2023-11-23": 3,
+    "2023-12-03": 2,
+    "2023-12-04": 1,
+    "2023-12-09": 3,
+    "2023-12-10": 1,
+    "2023-12-12": 1,
+    "2023-12-13": 1,
+    "2023-12-14": 1,
+    "2023-12-16": 1,
+    "2023-12-20": 2,
+    "2023-12-22": 1,
+    "2023-12-23": 1,
+    "2023-12-24": 1,
+    "2023-12-26": 2,
+    "2023-12-30": 1,
+    "2024-01-01": 1,
+    "2024-01-03": 1,
+    "2024-01-06": 1,
+    "2024-01-07": 3,
+    "2024-01-08": 5,
+    "2024-01-09": 1,
+    "2024-01-10": 1,
+    "2024-01-11": 6,
+    "2024-01-12": 1,
+    "2024-01-13": 1,
+    "2024-01-14": 1,
+    "2024-01-17": 1,
+    "2024-01-23": 1,
+    "2024-01-25": 2,
+    "2024-01-27": 1,
+    "2024-01-28": 1,
+    "2024-02-03": 1,
+    "2024-02-04": 2,
+    "2024-02-10": 1,
+    "2024-02-12": 2,
+    "2024-02-19": 1,
+    "2024-02-20": 1,
+    "2024-03-03": 1,
+    "2024-03-04": 1,
+    "2024-03-15": 1,
+    "2024-03-23": 1,
+    "2024-03-26": 1,
+    "2024-04-08": 1,
+    "2024-04-09": 1,
+    "2024-04-10": 1,
+    "2024-04-12": 1,
+    "2024-04-14": 1,
+    "2024-04-15": 1,
+    "2024-04-16": 1,
+    "2024-04-19": 1,
+    "2024-04-21": 1,
+    "2024-04-24": 1,
+    "2024-05-06": 1,
+    "2024-05-10": 1,
+    "2024-05-18": 1,
+    "2024-05-20": 1,
+    "2024-05-22": 1,
+    "2024-05-26": 1,
+    "2024-05-29": 1,
+    "2024-06-03": 1,
+    "2024-06-11": 1,
+    "2024-06-16": 2,
+    "2024-06-18": 1,
+    "2024-06-24": 2,
+    "2024-07-13": 1,
+    "2024-07-15": 1,
+    "2024-07-22": 1,
+    "2024-07-28": 1,
+    "2024-08-11": 1,
+    "2024-08-19": 2,
+    "2024-08-20": 1,
+    "2024-08-23": 1,
+    "2024-08-26": 4,
+    "2024-08-27": 1,
+    "2024-09-02": 2,
+    "2024-09-08": 2,
+    "2024-09-10": 1,
+    "2024-09-14": 1,
+    "2024-09-15": 2,
+    "2024-09-21": 1,
+    "2024-09-27": 1,
+    "2024-09-30": 7,
+    "2024-10-01": 1,
+    "2024-10-04": 1,
+    "2024-10-07": 1,
+    "2024-10-08": 1,
+    "2024-10-12": 1,
+    "2024-10-14": 1,
+    "2024-10-20": 1,
+    "2024-10-24": 1,
+    "2024-10-25": 1,
+    "2024-10-30": 1,
+    "2024-11-01": 1,
+    "2024-11-03": 1,
+    "2024-11-09": 1,
+    "2024-11-11": 1,
+    "2024-11-14": 1,
+    "2024-11-15": 1,
+    "2024-11-16": 3,
+    "2024-11-17": 1,
+    "2024-11-20": 1,
+    "2024-11-26": 1,
+    "2024-11-27": 1,
+    "2024-11-28": 1,
+    "2024-11-30": 3,
+    "2024-12-01": 1,
+    "2024-12-03": 1,
+    "2024-12-05": 1,
+    "2024-12-06": 1,
+    "2024-12-07": 2,
+    "2024-12-08": 2,
+    "2024-12-10": 1,
+    "2024-12-11": 1,
+    "2024-12-13": 1,
+    "2024-12-15": 1,
+    "2024-12-16": 1,
+    "2024-12-19": 2,
+    "2024-12-23": 1,
+    "2024-12-27": 1,
+    "2024-12-28": 2,
+    "2025-01-01": 1,
+    "2025-01-03": 1,
+    "2025-01-07": 1,
+    "2025-01-09": 2,
+    "2025-01-11": 1,
+    "2025-01-15": 1,
+    "2025-01-18": 2,
+    "2025-01-21": 3,
+    "2025-01-23": 1,
+    "2025-01-28": 2,
+    "2025-01-30": 1,
+    "2025-02-13": 1,
+    "2025-02-14": 1,
+    "2025-02-16": 1,
+    "2025-02-18": 1,
+    "2025-02-23": 1,
+    "2025-02-25": 1,
+    "2025-03-07": 1,
+    "2025-03-14": 1,
+    "2025-04-01": 8,
+    "2025-04-03": 2,
+    "2025-04-21": 1,
+    "2025-04-23": 1,
+    "2025-04-27": 1,
+    "2025-05-21": 1,
+    "2025-05-31": 1,
+    "2025-06-02": 1,
+    "2025-06-09": 1,
+    "2025-06-24": 1,
+    "2025-09-15": 1,
+    "2025-10-15": 1,
+    "2025-10-18": 1,
+    "2025-11-08": 2,
+    "2025-11-21": 1,
+    "2026-01-01": 1,
+    "2026-01-05": 1,
+    "2026-01-07": 1,
+    "2026-01-25": 1,
+    "2026-01-27": 1,
+    "2026-02-28": 1
+  },
+  "ratings": {
+    "total_avaliados": 754,
+    "media_geral": 3.1,
+    "distribuicao": {
+      "0.5": 92,
+      "1.0": 45,
+      "1.5": 16,
+      "2.0": 43,
+      "2.5": 49,
+      "3.0": 112,
+      "3.5": 70,
+      "4.0": 154,
+      "4.5": 101,
+      "5.0": 72
+    },
+    "media_por_ano": {
+      "2019": 2.31,
+      "2020": 3.5,
+      "2021": 3.59,
+      "2022": 3.16,
+      "2023": 2.95,
+      "2024": 3.93,
+      "2025": 4.38,
+      "2026": 4.33
+    },
+    "nota_maxima": [
+      {
+        "name": "Neon Genesis Evangelion: The End of Evangelion",
+        "year": "1997"
+      },
+      {
+        "name": "Perfect Blue",
+        "year": "1997"
+      },
+      {
+        "name": "Howl's Moving Castle",
+        "year": "2004"
+      },
+      {
+        "name": "Persona",
+        "year": "1966"
+      },
+      {
+        "name": "10 Things I Hate About You",
+        "year": "1999"
+      },
+      {
+        "name": "Belladonna of Sadness",
+        "year": "1973"
+      },
+      {
+        "name": "City of God",
+        "year": "2002"
+      },
+      {
+        "name": "Princess Mononoke",
+        "year": "1997"
+      },
+      {
+        "name": "Mirror",
+        "year": "1975"
+      },
+      {
+        "name": "The Godfather",
+        "year": "1972"
+      },
+      {
+        "name": "The Godfather Part II",
+        "year": "1974"
+      },
+      {
+        "name": "Chungking Express",
+        "year": "1994"
+      },
+      {
+        "name": "Interstella 5555: The 5tory of the 5ecret 5tar 5ystem",
+        "year": "2003"
+      },
+      {
+        "name": "Pierrot le Fou",
+        "year": "1965"
+      },
+      {
+        "name": "The Batman",
+        "year": "2022"
+      },
+      {
+        "name": "Incendies",
+        "year": "2010"
+      },
+      {
+        "name": "Mulholland Drive",
+        "year": "2001"
+      },
+      {
+        "name": "Cries and Whispers",
+        "year": "1972"
+      },
+      {
+        "name": "Before Sunrise",
+        "year": "1995"
+      },
+      {
+        "name": "La Haine",
+        "year": "1995"
+      }
+    ]
+  }
+}
+</script>
+<script>
+let chartTimeline = null;
+let chartYears    = null;
+
+const WEEKDAY_LABELS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+const MONTH_LABELS   = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+// Animated count-up for hero numbers
+function animateCount(el, target, { decimals = 0, duration = 1100, format } = {}) {
+  if (!el) return;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fmt = format || (v => v.toLocaleString('pt-BR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }));
+  if (reduce || !Number.isFinite(target)) { el.textContent = fmt(target); return; }
+  const start = performance.now();
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  function step(now) {
+    const p = Math.min((now - start) / duration, 1);
+    el.textContent = fmt(target * ease(p));
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(target);
+  }
+  requestAnimationFrame(step);
+}
+
+// Longest run of consecutive days with at least one film
+function longestStreak(heatmap) {
+  const days = Object.keys(heatmap).sort();
+  if (!days.length) return 0;
+  let best = 1, cur = 1;
+  for (let i = 1; i < days.length; i++) {
+    const prev = new Date(days[i - 1]);
+    const diff = (new Date(days[i]) - prev) / 86400000;
+    cur = diff === 1 ? cur + 1 : 1;
+    if (cur > best) best = cur;
+  }
+  return best;
+}
+
+function buildWeekdays(heatmap) {
+  const totals = [0, 0, 0, 0, 0, 0, 0];
+  Object.entries(heatmap).forEach(([d, c]) => { totals[new Date(d + 'T00:00:00').getDay()] += c; });
+  // Monday-first order
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const max = Math.max(...totals);
+  const wrap = document.getElementById('weekdayRows');
+  wrap.innerHTML = '';
+  order.forEach(i => {
+    const cnt = totals[i];
+    const pct = max ? Math.round((cnt / max) * 100) : 0;
+    const pk = cnt === max && max > 0;
+    const r = document.createElement('div');
+    r.className = 'wd-row';
+    r.innerHTML = `<div class="wd-label">${WEEKDAY_LABELS[i]}</div><div class="wd-track"><div class="wd-fill${pk ? ' peak' : ''}" style="width:${pct}%"></div></div><div class="wd-count${pk ? ' peak' : ''}">${cnt}</div>`;
+    wrap.appendChild(r);
+  });
+}
+
+function buildMonths(monthly) {
+  const totals = new Array(12).fill(0);
+  Object.entries(monthly).forEach(([ym, c]) => { totals[parseInt(ym.slice(5, 7), 10) - 1] += c; });
+  const max = Math.max(...totals);
+  const wrap = document.getElementById('monthRows');
+  wrap.innerHTML = '';
+  totals.forEach((cnt, i) => {
+    const pct = max ? Math.round((cnt / max) * 100) : 0;
+    const pk = cnt === max && max > 0;
+    const r = document.createElement('div');
+    r.className = 'wd-row';
+    r.innerHTML = `<div class="wd-label">${MONTH_LABELS[i]}</div><div class="wd-track"><div class="wd-fill${pk ? ' peak' : ''}" style="width:${pct}%"></div></div><div class="wd-count${pk ? ' peak' : ''}">${cnt}</div>`;
+    wrap.appendChild(r);
+  });
+}
+
+function buildInsights(s) {
+  const grid = document.getElementById('insightGrid');
+  if (!grid) return;
+  const cards = [];
+
+  // active days + longest streak
+  const activeDays = s.heatmap ? Object.keys(s.heatmap).length : 0;
+  if (activeDays) cards.push({ e: '\u{1F4C5}', v: activeDays.toLocaleString('pt-BR'), l: 'dias com pelo menos um filme registrado' });
+  if (s.heatmap) {
+    const streak = longestStreak(s.heatmap);
+    cards.push({ e: '\u{1F525}', v: `${streak} dia${streak > 1 ? 's' : ''}`, l: 'maior sequencia de dias seguidos assistindo' });
+  }
+
+  // most active weekday
+  if (s.heatmap) {
+    const wd = [0, 0, 0, 0, 0, 0, 0];
+    Object.entries(s.heatmap).forEach(([d, c]) => { wd[new Date(d + 'T00:00:00').getDay()] += c; });
+    const best = wd.indexOf(Math.max(...wd));
+    const names = ['domingos', 'segundas', 'tercas', 'quartas', 'quintas', 'sextas', 'sabados'];
+    cards.push({ e: '\u{1F4C6}', v: names[best], l: 'seu dia da semana mais cinefilo' });
+  }
+
+  // busiest month-year
+  const me = Object.entries(s.monthly || {});
+  if (me.length) {
+    const [ym, cnt] = me.reduce((a, b) => (b[1] > a[1] ? b : a));
+    const [y, m] = ym.split('-');
+    cards.push({ e: '\u{1F3AC}', v: `${MONTH_LABELS[parseInt(m, 10) - 1]} ${y}`, l: `mes recorde com ${cnt} filmes` });
+  }
+
+  // dominant decade
+  const de = Object.entries(s.by_decade || {});
+  if (de.length) {
+    const total = de.reduce((a, b) => a + b[1], 0);
+    const [dec, cnt] = de.reduce((a, b) => (b[1] > a[1] ? b : a));
+    cards.push({ e: '\u{1F4FD}', v: dec, l: `decada dominante (${Math.round((cnt / total) * 100)}% do catalogo)` });
+  }
+
+  // ratings flavor
+  if (s.ratings) {
+    cards.push({ e: '\u{2B50}', v: s.ratings.media_geral, l: `nota media entre ${s.ratings.total_avaliados} avaliados` });
+  }
+
+  grid.innerHTML = cards.map(c =>
+    `<div class="insight-card"><div class="insight-emoji">${c.e}</div><div class="insight-val">${c.v}</div><div class="insight-lbl">${c.l}</div></div>`
+  ).join('');
+}
+
+let allTop5 = [];
+function renderTop5(filter = '') {
+  const list = document.getElementById('top5List');
+  const count = document.getElementById('top5Count');
+  const q = filter.trim().toLowerCase();
+  const items = q ? allTop5.filter(f => f.name.toLowerCase().includes(q) || String(f.year).includes(q)) : allTop5;
+  if (count) count.textContent = `${items.length} de ${allTop5.length}`;
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div class="top5-empty">Nenhum filme corresponde a essa busca.</div>';
+    return;
+  }
+  items.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'top5-item';
+    item.innerHTML = `<div class="top5-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div><div><div class="top5-name">${f.name}</div><div class="top5-year">${f.year}</div></div>`;
+    list.appendChild(item);
+  });
+}
+
+const GRID  = 'rgba(255,255,255,0.04)';
+const TICK  = '#4a5a6a';
+const GREEN = '#00e054';
+const GDIM  = 'rgba(0,192,48,0.55)';
+const GFILL = 'rgba(0,224,84,0.07)';
+
+// Heatmap helpers
+function heatColor(val, max) {
+  if (!val) return 'rgba(255,255,255,0.05)';
+  const steps = [
+    'rgba(0,160,40,0.25)',
+    'rgba(0,180,48,0.45)',
+    'rgba(0,200,55,0.65)',
+    'rgba(0,220,60,0.82)',
+    '#00e054',
+  ];
+  const idx = Math.min(Math.floor((val / max) * steps.length), steps.length - 1);
+  return steps[idx];
+}
+
+function buildHeatmap(heatmap) {
+  const max = Math.max(...Object.values(heatmap));
+  const allDates = Object.keys(heatmap).sort();
+  const firstDate = new Date(allDates[0]);
+  const lastDate  = new Date(allDates[allDates.length - 1]);
+
+  // start from Monday of the first week
+  const start = new Date(firstDate);
+  start.setDate(start.getDate() - start.getDay());
+
+  const container = document.getElementById('heatmapContainer');
+  container.innerHTML = '';
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+
+  const weeksWrap = document.createElement('div');
+  weeksWrap.className = 'heatmap-wrap';
+
+  let current = new Date(start);
+  let week = null;
+  let lastMonth = -1;
+  const monthLabels = [];
+  let weekIndex = 0;
+
+  while (current <= lastDate) {
+    if (!week) {
+      week = document.createElement('div');
+      week.className = 'heatmap-week';
+      weeksWrap.appendChild(week);
+    }
+
+    const dateStr  = current.toISOString().slice(0, 10);
+    const count    = heatmap[dateStr] || 0;
+    const cell     = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    cell.style.background = heatColor(count, max);
+    if (count) cell.title = `${dateStr}: ${count} filme${count > 1 ? 's' : ''}`;
+    week.appendChild(cell);
+
+    const month = current.getMonth();
+    if (month !== lastMonth && current.getDay() === 0) {
+      monthLabels.push({ weekIdx: weekIndex, label: current.toLocaleString('pt-BR', { month: 'short' }) });
+      lastMonth = month;
+    }
+
+    if (current.getDay() === 6) {
+      week = null;
+      weekIndex++;
+    }
+    current.setDate(current.getDate() + 1);
+  }
+
+  container.appendChild(weeksWrap);
+
+  // legend
+  const legendCells = document.getElementById('legendCells');
+  legendCells.innerHTML = '';
+  ['rgba(255,255,255,0.05)', 'rgba(0,160,40,0.25)', 'rgba(0,200,55,0.65)', '#00e054'].forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'heatmap-legend-cell';
+    el.style.background = c;
+    legendCells.appendChild(el);
+  });
+}
+
+// Main render
+function renderDashboard(s) {
+  const years     = Object.keys(s.by_year);
+  const firstYear = years[0];
+  const lastYear  = years[years.length - 1];
+
+  document.getElementById('headerSub').textContent    = `historico pessoal | ${firstYear} a ${lastYear}`;
+  animateCount(document.getElementById('sTotal'),  s.total);
+  animateCount(document.getElementById('sYears'),  s.active_years);
+  animateCount(document.getElementById('sAvg'),    s.avg_per_year);
+  animateCount(document.getElementById('sRecord'), s.top_day.count);
+  document.getElementById('sRecordLabel').textContent = `recorde em ${s.top_day.date}`;
+  document.getElementById('footerDate').textContent   = `atualizado em ${s.gerado_em} | letterboxd`;
+
+  // Derived insight panels
+  buildInsights(s);
+  if (s.heatmap) buildWeekdays(s.heatmap);
+  buildMonths(s.monthly);
+
+  // Timeline
+  if (chartTimeline) chartTimeline.destroy();
+  chartTimeline = new Chart(document.getElementById('chartTimeline'), {
+    type: 'line',
+    data: { labels: Object.keys(s.monthly), datasets: [{ data: Object.values(s.monthly), borderColor: GREEN, borderWidth: 1.5, backgroundColor: GFILL, fill: true, pointRadius: 0, tension: 0.4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1f24', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, titleColor: '#e8f0f5', bodyColor: '#8899aa', callbacks: { label: t => `  ${t.raw} filmes` } } }, scales: { x: { ticks: { color: TICK, font: { size: 10 }, maxTicksLimit: 8, maxRotation: 0 }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } }, y: { ticks: { color: TICK, font: { size: 10 } }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } } } }
+  });
+
+  // Heatmap
+  if (s.heatmap) buildHeatmap(s.heatmap);
+
+  // Years
+  const maxYear  = Math.max(...Object.values(s.by_year));
+  const yearGrid = document.getElementById('yearGrid');
+  yearGrid.innerHTML = '';
+  Object.entries(s.by_year).forEach(([yr, cnt]) => {
+    const op = 0.15 + (cnt / maxYear) * 0.85;
+    const d  = document.createElement('div');
+    d.className = 'year-badge';
+    d.style.borderColor = `rgba(0,224,84,${op * 0.35})`;
+    d.style.background  = `rgba(0,224,84,${op * 0.07})`;
+    d.innerHTML = `<div class="year-val" style="color:rgba(0,224,84,${0.35+op*0.65})">${cnt}</div><div class="year-lbl">${yr}</div>`;
+    yearGrid.appendChild(d);
+  });
+
+  // Decades
+  const maxDecade  = Math.max(...Object.values(s.by_decade));
+  const decadeRows = document.getElementById('decadeRows');
+  decadeRows.innerHTML = '';
+  Object.entries(s.by_decade).reverse().forEach(([dec, cnt]) => {
+    const pct = Math.round((cnt / maxDecade) * 100);
+    const pk  = pct > 35;
+    const r   = document.createElement('div');
+    r.className = 'decade-row';
+    r.innerHTML = `<div class="decade-label">${dec}</div><div class="decade-track"><div class="decade-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="decade-count${pk?' peak':''}">${cnt}</div>`;
+    decadeRows.appendChild(r);
+  });
+
+  // Bar chart
+  if (chartYears) chartYears.destroy();
+  chartYears = new Chart(document.getElementById('chartYears'), {
+    type: 'bar',
+    data: { labels: Object.keys(s.by_year), datasets: [{ data: Object.values(s.by_year), backgroundColor: Object.values(s.by_year).map(v => v === maxYear ? GREEN : GDIM), borderRadius: 6, borderSkipped: false }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1f24', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, titleColor: '#e8f0f5', bodyColor: '#8899aa', callbacks: { label: t => `  ${t.raw} filmes` } } }, scales: { x: { ticks: { color: TICK, font: { size: 12 }, autoSkip: false, maxRotation: 0 }, grid: { display: false }, border: { color: 'rgba(255,255,255,0.06)' } }, y: { ticks: { color: TICK, font: { size: 11 } }, grid: { color: GRID }, border: { color: 'rgba(255,255,255,0.06)' } } } }
+  });
+
+  // Ratings
+  if (!s.ratings) {
+    document.getElementById('panelRatingDist').classList.add('full', 'empty-panel');
+    document.getElementById('panelRatingDist').innerHTML = `
+      <div class="empty-panel-inner">
+        <div class="empty-panel-kicker">avaliacoes ausentes</div>
+        <div class="empty-panel-title">As notas ainda nao entraram neste painel.</div>
+        <div class="empty-panel-copy">Adicione <code style="color:#00e054;font-family:'IBM Plex Mono',monospace">data/ratings.csv</code> ao projeto para liberar distribuicao de notas, media anual e destaques com nota maxima.</div>
+      </div>`;
+    document.getElementById('panelRatingYear').style.display = 'none';
+    document.getElementById('panelTop5').style.display       = 'none';
+    return;
+  }
+  const rt = s.ratings;
+  animateCount(document.getElementById('ratingMedia'), rt.media_geral, { decimals: 1 });
+  document.getElementById('ratingTotal').textContent = `${rt.total_avaliados} filmes avaliados`;
+
+  const maxDist = Math.max(...Object.values(rt.distribuicao));
+  const ratingBars = document.getElementById('ratingBars');
+  ratingBars.innerHTML = '';
+  Object.entries(rt.distribuicao).sort((a,b) => parseFloat(b[0])-parseFloat(a[0])).forEach(([nota, cnt]) => {
+    const pct = Math.round((cnt / maxDist) * 100);
+    const pk  = cnt === maxDist;
+    const row = document.createElement('div');
+    row.className = 'rating-row';
+    row.innerHTML = `<div class="rating-lbl">&#9733;${nota}</div><div class="rating-track"><div class="rating-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="rating-cnt">${cnt}</div>`;
+    ratingBars.appendChild(row);
+  });
+
+  const maxAvg = Math.max(...Object.values(rt.media_por_ano));
+  const avgRows = document.getElementById('avgYearRows');
+  avgRows.innerHTML = '';
+  Object.entries(rt.media_por_ano).forEach(([yr, avg]) => {
+    const pct = Math.round((avg / 5) * 100);
+    const pk  = avg === maxAvg;
+    const row = document.createElement('div');
+    row.className = 'avg-year-row';
+    row.innerHTML = `<div class="avg-year-lbl">${yr}</div><div class="avg-year-track"><div class="avg-year-fill${pk?' peak':''}" style="width:${pct}%"></div></div><div class="avg-year-val${pk?' peak':''}">${avg}</div>`;
+    avgRows.appendChild(row);
+  });
+
+  allTop5 = rt.nota_maxima || [];
+  renderTop5();
+  const search = document.getElementById('top5Search');
+  if (search) search.addEventListener('input', e => renderTop5(e.target.value));
+}
+
+async function loadStats() {
+  try {
+    const response = await fetch('stats.json');
+    if (!response.ok) throw new Error('stats.json n&atilde;o encontrado');
+    return await response.json();
+  } catch (error) {
+    const embedded = document.getElementById('embedded-stats')?.textContent?.trim();
+    if (embedded && embedded !== '{}') {
+      return JSON.parse(embedded);
+    }
+    throw error;
+  }
+}
+
+function revealPanels() {
+  document.querySelectorAll('.stat-card').forEach((el, i) => { el.style.animationDelay = `${i * 60}ms`; });
+  document.querySelectorAll('.panel').forEach((el, i) => { el.style.animationDelay = `${120 + i * 70}ms`; });
+  document.body.classList.add('reveal-on');
+}
+
+loadStats()
+  .then(s => { renderDashboard(s); revealPanels(); })
+  .catch(err => {
+    revealPanels();
+    document.getElementById('headerSub').textContent = 'erro ao carregar dados';
+    document.querySelector('.panels').insertAdjacentHTML('afterbegin',
+      `<div class="panel full"><p class="error-msg">N&atilde;o foi poss&iacute;vel carregar <code>stats.json</code>.<br>Rode <code>python src/main.py</code> para gerar o arquivo.<br><br><small style="color:#3a4a5a">${err.message}</small></p></div>`
+    );
+  });
+</script>
+</body>
+</html>
